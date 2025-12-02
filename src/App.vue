@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
+import { useStorage } from '@vueuse/core'
 import HeaderBar from '@/components/HeaderBar.vue'
 import ControlsPanel from '@/components/ControlsPanel.vue'
 import LatencyChart from '@/components/LatencyChart.vue'
@@ -10,7 +11,7 @@ type LayoutMode = 'a' | 'b' | 'c' | 'd'
 
 const { targets, log, interval, timeout, syncTimers, isRunning, start, stop, clearLog } = usePingMatrix()
 
-const layoutMode = ref<LayoutMode>('a')
+const layoutMode = useStorage<LayoutMode>('ping-matrix-layout', 'a')
 const layoutOptions = [
   { id: 'a', label: '布局A', hint: '上下布局：控制 → 图表 → 表格' },
   { id: 'b', label: '布局B', hint: '左列控制 + 右列上下结构' },
@@ -29,6 +30,9 @@ const handleTimeoutChange = (value: number) => {
 const handleSyncChange = (value: boolean) => {
   syncTimers.value = value
 }
+const handleLayoutChange = (mode: string) => {
+  layoutMode.value = (mode as LayoutMode) ?? 'a'
+}
 </script>
 
 <template>
@@ -37,7 +41,7 @@ const handleSyncChange = (value: boolean) => {
       :layout-mode="layoutMode"
       :options="layoutOptions"
       :is-running="isRunning"
-      @update:layout="layoutMode = $event as LayoutMode"
+      @update:layout="handleLayoutChange"
     />
 
     <ControlsPanel

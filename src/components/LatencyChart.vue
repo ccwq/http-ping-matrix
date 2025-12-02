@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+import { computed } from 'vue'
+import BaseEChart from '@/components/BaseEChart.vue'
 import type { LogEntry, Target } from '@/composables/usePingMatrix'
+import type { EChartsOption } from 'echarts'
 
 const props = defineProps<{
   log: LogEntry[]
   targets: Target[]
 }>()
 
-const chartRef = ref<HTMLDivElement | null>(null)
-let chartInstance: echarts.ECharts | null = null
+const FIXED_WINDOW_MS = 5 * 60 * 1000
 
 const groupedSeries = computed(() => {
   const groups: Record<string, [number, number][]> = {}
@@ -24,123 +24,117 @@ const groupedSeries = computed(() => {
       bucket.shift()
     }
   }
+  Object.values(groups).forEach((entries) => entries.sort((a, b) => a[0] - b[0]))
   return groups
 })
 
-const buildSeries = computed(() => {
-  return props.targets.map((target) => ({
+const buildSeries = computed(() =>
+  props.targets.map((target) => ({
     name: target.name,
-    type: 'line',
-    smooth: true,
+    type: 'line' as const,
+    smooth: false,
     showSymbol: false,
+    stack: 'latency' as const,
     color: target.color,
-    areaStyle: { opacity: 0.25 },
+    areaStyle: { opacity: 0.35 },
+    lineStyle: { width: 2 },
     emphasis: {
-      focus: 'series',
+      focus: 'series' as const,
       lineStyle: { width: 3 }
     },
     data: groupedSeries.value[target.name] ?? []
   }))
-})
-
-const baseOptions: echarts.EChartsOption = {
-  backgroundColor: 'transparent',
-  grid: { left: 40, right: 20, top: 50, bottom: 40 },
-  legend: {
-    top: 10,
-    textStyle: {
-      color: '#c9d1d9',
-      fontFamily: 'Press Start 2P',
-      fontSize: 9
-    },
-    itemWidth: 10,
-    itemHeight: 10
-  },
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: { type: 'line' },
-    backgroundColor: '#0b0f18',
-    borderColor: '#00ffff',
-    formatter: (params: any) => {
-      const header = `<div>TIME: ${new Date(params[0].axisValue).toLocaleTimeString()}</div>`
-      const rows = params
-        .map(
-          (item: any) =>
-            `<div style="color:${item.color};font-family:'Fira Code', monospace;">${item.seriesName}: ${item.data[1]}ms</div>`
-        )
-        .join('')
-      return header + rows
-    }
-  },
-  xAxis: {
-    type: 'time',
-    boundaryGap: [0, 0],
-    splitLine: {
-      show: true,
-      lineStyle: { color: '#1f2937', type: 'dashed' }
-    },
-    axisLine: { lineStyle: { color: '#00ffff' } },
-    axisLabel: { color: '#c9d1d9' }
-  },
-  yAxis: {
-    type: 'value',
-    name: 'Latency (ms)',
-    splitLine: {
-      show: true,
-      lineStyle: { color: '#1f2937', type: 'dashed' }
-    },
-    axisLine: { lineStyle: { color: '#00ffff' } },
-    axisLabel: { color: '#c9d1d9' }
-  },
-  dataZoom: [
-    {
-      type: 'inside',
-      throttle: 50
-    },
-    {
-      type: 'slider',
-      showDetail: false,
-      height: 10,
-      bottom: 6,
-      borderColor: '#00ffff',
-      handleStyle: { color: '#39ff14' },
-      textStyle: { color: '#c9d1d9' }
-    }
-  ],
-  series: []
-}
-
-const renderChart = () => {
-  if (!chartInstance || !chartRef.value) return
-  chartInstance.setOption({
-    ...baseOptions,
-    series: buildSeries.value
-  })
-}
-
-const resizeChart = () => {
-  chartInstance?.resize()
-}
-
-onMounted(() => {
-  if (!chartRef.value) return
-  chartInstance = echarts.init(chartRef.value)
-  renderChart()
-  window.addEventListener('resize', resizeChart)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', resizeChart)
-  chartInstance?.dispose()
-})
-
-watch(
-  buildSeries,
-  () => {
-    renderChart()
-  },
-  { deep: true }
 )
+
+const chartOption = computed<EChartsOption>(() => {
+  const hasData = props.log.length > 0
+  const now = Date.now()
+  const xAxisBase = {
+    type: 'time' as const,
+    boundaryGap: [0, 0] as [number, number],
+    splitLine: {
+      show: true,
+      lineStyle: { color: '#1f2937', type: 'dashed' as const }
+    },
+    axisLine: { lineStyle: { color: '#00ffff' } },
+    axisLabel: { color: '#c9d1d9' }
+  }
+
+  return {
+    backgroundColor: 'transparent',
+    grid: { left: 30, right: 18, top: 40, bottom: 28 },
+    legend: {
+      top: 10,
+      textStyle: {
+        color: '#c9d1d9',
+        fontFamily: 'Press Start 2P',
+        fontSize: 9
+      },
+      itemWidth: 10,
+      itemHeight: 10
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      backgroundColor: '#0b0f18',
+      borderColor: '#00ffff',
+      formatter: (input: unknown) => {
+        const params = (Array.isArray(input) ? input : [input]).filter(Boolean) as Array<{
+          axisValue?: number
+          data?: [number, number]
+          seriesName: string
+          color: string
+        }>
+        if (!params.length) return ''
+        const time = params[0]?.axisValue
+        const sorted = [...params].sort((a, b) => (b.data?.[1] ?? 0) - (a.data?.[1] ?? 0))
+        const rows = sorted
+          .map(
+            (item) =>
+              `<div style="color:${item.color};font-family:'Fira Code', monospace;">${item.seriesName}: <strong>${item.data?.[1] ?? '--'}ms</strong></div>`
+          )
+          .join('')
+        const total = sorted.reduce((sum, item) => sum + (item.data?.[1] ?? 0), 0)
+        const header = `<div>TIME: ${time ? new Date(time).toLocaleTimeString() : '--'}</div>`
+        return `${header}${rows}<div style="margin-top:4px;color:#c9d1d9;">TOTAL: ${total}ms</div>`
+      }
+    },
+    xAxis: hasData
+      ? xAxisBase
+      : {
+          ...xAxisBase,
+          min: now - FIXED_WINDOW_MS,
+          max: now,
+          splitNumber: 5
+        },
+    yAxis: {
+      type: 'value',
+      name: 'Latency (ms)',
+      splitLine: {
+        show: true,
+        lineStyle: { color: '#1f2937', type: 'dashed' as const }
+      },
+      axisLine: { lineStyle: { color: '#00ffff' } },
+      axisLabel: { color: '#c9d1d9' }
+    },
+    dataZoom: [
+      {
+        type: 'inside',
+        throttle: 50
+      },
+      {
+        type: 'slider',
+        showDetail: false,
+        height: 10,
+        bottom: 6,
+        borderColor: '#00ffff',
+        handleStyle: { color: '#39ff14' },
+        textStyle: { color: '#c9d1d9' }
+      }
+    ],
+    series: buildSeries.value
+  }
+})
 </script>
 
 <template>
@@ -149,7 +143,7 @@ watch(
       <span class="geek-title">Latency (ms)</span>
       <span class="meta">数据点：{{ log.length }}</span>
     </header>
-    <div ref="chartRef" class="chart-container"></div>
+    <BaseEChart :option="chartOption" class="chart-container" />
   </section>
 </template>
 
@@ -158,6 +152,7 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  height: 100%;
 }
 
 .panel-title {
@@ -173,12 +168,9 @@ watch(
 
 .chart-container {
   width: 100%;
-  height: 280px;
-}
-
-@media (min-height: 900px) {
-  .chart-container {
-    height: 360px;
-  }
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

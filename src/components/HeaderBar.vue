@@ -57,7 +57,9 @@ const handleLayoutChange = (layoutId: string) => {
 .header-bar {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 0.65rem;
+  height: 100%;
 }
 
 .header-info {

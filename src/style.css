@@ -28,11 +28,14 @@ body {
   min-height: 100vh;
   background: radial-gradient(circle at top, rgba(0, 255, 255, 0.08), transparent 55%), var(--color-bg);
   color: #c9d1d9;
+  display: flex;
 }
 
 #app {
-  min-height: 100vh;
-  padding: 1.5rem;
+  flex: 1;
+  min-height: calc(100vh - 2rem);
+  padding: 1rem;
+  display: flex;
 }
 
 a {
@@ -43,8 +46,10 @@ a {
 .app-shell {
   display: grid;
   gap: 1rem;
-  width: min(1200px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  height: calc(100% - 1);
+  grid-auto-rows: minmax(0, 1fr);
 }
 
 .panel {
@@ -54,6 +59,10 @@ a {
   color: inherit;
   box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.05);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel::after {
@@ -175,6 +184,7 @@ input[type='range']::-moz-range-thumb {
 
 .layout-a {
   grid-template-columns: 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     'header'
     'controls'
@@ -183,7 +193,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .layout-b {
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     'header header'
     'controls chart'
@@ -191,7 +202,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .layout-c {
-  grid-template-columns: 1.5fr 1.5fr 1fr;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(260px, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     'header header header'
     'chart chart controls'
@@ -199,7 +211,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .layout-d {
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     'header header'
     'table chart'
@@ -208,13 +221,14 @@ input[type='range']::-moz-range-thumb {
 
 @media (max-width: 900px) {
   #app {
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.5rem;
   }
   .layout-a,
   .layout-b,
   .layout-c,
   .layout-d {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       'header'
       'controls'

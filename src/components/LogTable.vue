@@ -73,6 +73,8 @@ const durationBadge = (entry: LogEntry) => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  height: 100%;
+  min-height: 0;
 }
 
 .panel-title {
@@ -106,7 +108,8 @@ const durationBadge = (entry: LogEntry) => {
 }
 
 .table-body {
-  max-height: 320px;
+  flex: 1;
+  min-height: 0;
   overflow: hidden auto;
 }
 
