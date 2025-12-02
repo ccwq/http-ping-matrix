@@ -1,0 +1,185 @@
+import { computed, ref, watch } from 'vue'
+import { nanoid } from 'nanoid'
+import { useIntervalFn } from '@vueuse/core'
+
+export type LogStatus = 'success' | 'timeout' | 'error'
+
+export interface Target {
+  id: string
+  name: string
+  url: string
+  color: string
+}
+
+export interface LogEntry {
+  id: string
+  timestamp: number
+  targetName: string
+  url: string
+  status: LogStatus
+  duration: number
+  error?: string
+}
+
+const DEFAULT_TARGETS: Target[] = [
+  { id: nanoid(), name: 'taobao', url: 'https://www.taobao.com/favicon.ico?1764636922369', color: '#39ff14' },
+  { id: nanoid(), name: 'baidu', url: 'https://www.baidu.com/favicon.ico?1764636922421', color: '#00ffff' },
+  { id: nanoid(), name: 'wechat', url: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico?1764636922469', color: '#f1e05a' },
+  { id: nanoid(), name: 'chatgpt', url: 'https://chatgpt.com/favicon.ico?1764636922717', color: '#ff7b72' },
+  { id: nanoid(), name: 'github', url: 'https://github.com/favicon.ico?1764636922671', color: '#9d79d6' },
+  { id: nanoid(), name: 'youtube', url: 'https://www.youtube.com/favicon.ico?1764636922617', color: '#f87171' },
+  { id: nanoid(), name: 'cloudflare', url: 'https://www.cloudflare.com/favicon.ico?1764636922572', color: '#f97316' }
+]
+
+const LOG_LIMIT = 1000
+
+async function ping(url: string, timeout: number) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeout)
+  const startTime = performance.now()
+
+  try {
+    const uniqueUrl = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`
+    await fetch(uniqueUrl, {
+      signal: controller.signal,
+      cache: 'no-store',
+      mode: 'no-cors'
+    })
+    const duration = Math.round(performance.now() - startTime)
+    return {
+      timestamp: Date.now(),
+      url,
+      status: 'success' as LogStatus,
+      duration
+    }
+  } catch (error) {
+    const duration = Math.round(performance.now() - startTime)
+    if ((error as Error).name === 'AbortError') {
+      return {
+        timestamp: Date.now(),
+        url,
+        status: 'timeout' as LogStatus,
+        duration: timeout,
+        error: 'Timeout'
+      }
+    }
+    return {
+      timestamp: Date.now(),
+      url,
+      status: 'error' as LogStatus,
+      duration,
+      error: (error as Error).message ?? 'Unknown error'
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export function usePingMatrix() {
+  const targets = ref<Target[]>([...DEFAULT_TARGETS])
+  const log = ref<LogEntry[]>([])
+  const interval = ref(5000)
+  const timeout = ref(5000)
+  const syncTimers = ref(true)
+  const isRunning = ref(false)
+
+  const pushLog = (entry: LogEntry) => {
+    log.value.unshift(entry)
+    if (log.value.length > LOG_LIMIT) {
+      log.value.splice(LOG_LIMIT)
+    }
+  }
+
+  const runTick = async () => {
+    if (!targets.value.length) return
+    const tasks = targets.value.map(async (target) => {
+      const result = await ping(target.url, timeout.value)
+      return { target, result }
+    })
+
+    const settled = await Promise.allSettled(tasks)
+    settled.forEach((item) => {
+      if (item.status !== 'fulfilled') return
+      const {
+        target,
+        result: { timestamp, url, status, duration, error }
+      } = item.value
+      pushLog({
+        id: nanoid(),
+        timestamp,
+        url,
+        status,
+        duration,
+        error,
+        targetName: target.name
+      })
+    })
+  }
+
+  const { pause, resume } = useIntervalFn(
+    async () => {
+      if (!isRunning.value) return
+      await runTick()
+    },
+    interval,
+    { immediate: false }
+  )
+
+  const start = async () => {
+    if (isRunning.value) return
+    isRunning.value = true
+    await runTick()
+    resume()
+  }
+
+  const stop = () => {
+    if (!isRunning.value) return
+    isRunning.value = false
+    pause()
+  }
+
+  const clearLog = () => {
+    log.value = []
+  }
+
+  watch(
+    [interval, syncTimers],
+    ([currentInterval, sync]) => {
+      if (sync) {
+        timeout.value = currentInterval
+      }
+    },
+    { immediate: true }
+  )
+
+  watch(interval, () => {
+    if (isRunning.value) {
+      pause()
+      resume()
+    }
+  })
+
+  const latencyStats = computed(() => {
+    const latest = log.value.slice(0, targets.value.length)
+    return latest.reduce(
+      (acc, entry) => {
+        acc[entry.targetName] = entry.duration
+        return acc
+      },
+      {} as Record<string, number>
+    )
+  })
+
+  return {
+    targets,
+    log,
+    interval,
+    timeout,
+    syncTimers,
+    isRunning,
+    latencyStats,
+    start,
+    stop,
+    clearLog
+  }
+}
