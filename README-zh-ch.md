@@ -1,5 +1,7 @@
 # Ping Matrix
 
+**在线演示**: [https://ccwq.github.io/http-ping-matrix](https://ccwq.github.io/http-ping-matrix)
+
 一个基于 Vite + Vue 3 + TypeScript 的网络探测面板，主打 Geek/Pixel 风。通过 `fetch + AbortController` 按间隔轮询一组目标站点，记录耗时/状态/错误，并以堆叠折线图 + 虚拟列表实时展示。
 
 ## 功能特色
