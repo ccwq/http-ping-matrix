@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseEChart from '@/components/BaseEChart.vue'
 import type { LogEntry, Target } from '@/composables/usePingMatrix'
@@ -11,7 +11,34 @@ const props = defineProps<{
 }>()
 
 const FIXED_WINDOW_MS = 5 * 60 * 1000
+const WINDOW_PADDING_MS = 3 * 1000
+const CLOCK_INTERVAL_MS = 1000
+const MAX_POINTS_PER_SERIES = 600
 const { t, locale } = useI18n()
+
+const chartClock = ref(Date.now())
+let clockTimer: number | null = null
+
+// 使用内部时钟让时间轴稳定推进，避免依赖真实数据刷新频率
+const tickClock = () => {
+  chartClock.value = Date.now()
+}
+
+onMounted(() => {
+  clockTimer = window.setInterval(tickClock, CLOCK_INTERVAL_MS)
+})
+
+onBeforeUnmount(() => {
+  if (clockTimer !== null) {
+    window.clearInterval(clockTimer)
+    clockTimer = null
+  }
+})
+
+const windowRange = computed(() => ({
+  start: chartClock.value - FIXED_WINDOW_MS,
+  end: chartClock.value
+}))
 
 const groupedSeries = computed(() => {
   const groups: Record<string, [number, number][]> = {}
@@ -19,16 +46,29 @@ const groupedSeries = computed(() => {
     groups[target.name] = []
   })
 
+  const minTime = windowRange.value.start - WINDOW_PADDING_MS
   for (const entry of props.log) {
-    const bucket = groups[entry.targetName] ?? (groups[entry.targetName] = [])
-    bucket.push([entry.timestamp, entry.duration])
-    if (bucket.length > 200) {
-      bucket.shift()
-    }
+    if (entry.timestamp < minTime) continue
+    entry.results.forEach((result) => {
+      const bucket = groups[result.targetName] ?? (groups[result.targetName] = [])
+      bucket.push([entry.timestamp, result.duration])
+    })
   }
-  Object.values(groups).forEach((entries) => entries.sort((a, b) => a[0] - b[0]))
+  Object.entries(groups).forEach(([name, entries]) => {
+    const normalized = entries
+      .filter(([timestamp]) => timestamp >= minTime)
+      .sort((a, b) => a[0] - b[0])
+    if (normalized.length > MAX_POINTS_PER_SERIES) {
+      normalized.splice(0, normalized.length - MAX_POINTS_PER_SERIES)
+    }
+    groups[name] = normalized
+  })
   return groups
 })
+
+const totalPoints = computed(() =>
+  Object.values(groupedSeries.value).reduce((sum, series) => sum + series.length, 0)
+)
 
 const buildSeries = computed(() =>
   props.targets.map((target) => ({
@@ -49,8 +89,8 @@ const buildSeries = computed(() =>
 )
 
 const chartOption = computed<EChartsOption>(() => {
-  const hasData = props.log.length > 0
-  const now = Date.now()
+  const hasData = totalPoints.value > 0
+  const { start, end } = windowRange.value
   const xAxisBase = {
     type: 'time' as const,
     boundaryGap: [0, 0] as [number, number],
@@ -77,7 +117,7 @@ const chartOption = computed<EChartsOption>(() => {
     },
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'line' },
+      axisPointer: { type: 'line', animation: false },
       backgroundColor: '#0b0f18',
       borderColor: '#00ffff',
       formatter: (input: unknown) => {
@@ -111,14 +151,12 @@ const chartOption = computed<EChartsOption>(() => {
         })}</div>`
       }
     },
-    xAxis: hasData
-      ? xAxisBase
-      : {
-          ...xAxisBase,
-          min: now - FIXED_WINDOW_MS,
-          max: now,
-          splitNumber: 5
-        },
+    xAxis: {
+      ...xAxisBase,
+      min: start,
+      max: end,
+      splitNumber: hasData ? 6 : 5
+    },
     yAxis: {
       type: 'value',
       name: t('chart.title'),
@@ -153,7 +191,7 @@ const chartOption = computed<EChartsOption>(() => {
   <section class="panel grid-area-chart chart-panel">
     <header class="panel-title">
       <span class="geek-title">{{ t('chart.title') }}</span>
-      <span class="meta">{{ t('chart.points', { count: log.length }) }}</span>
+      <span class="meta">{{ t('chart.points', { count: totalPoints }) }}</span>
     </header>
     <BaseEChart :option="chartOption" class="chart-container" />
   </section>

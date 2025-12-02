@@ -12,7 +12,7 @@ let resizeObserver: ResizeObserver | null = null
 
 const renderChart = () => {
   if (!instance || !props.option) return
-  instance.setOption(props.option, true)
+  instance.setOption(props.option, false, false)
 }
 
 const setupResizeObserver = () => {

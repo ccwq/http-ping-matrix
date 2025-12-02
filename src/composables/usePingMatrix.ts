@@ -11,14 +11,19 @@ export interface Target {
   color: string
 }
 
-export interface LogEntry {
-  id: string
-  timestamp: number
+export interface TargetLogEntry {
+  targetId: string
   targetName: string
   url: string
   status: LogStatus
   duration: number
   error?: string
+}
+
+export interface LogEntry {
+  id: string
+  timestamp: number
+  results: TargetLogEntry[]
 }
 
 const DEFAULT_TARGETS: Target[] = [
@@ -77,7 +82,7 @@ async function ping(url: string, timeout: number) {
 
 export function usePingMatrix() {
   const targets = ref<Target[]>([...DEFAULT_TARGETS])
-  const log = ref<LogEntry[]>([])
+const log = ref<LogEntry[]>([])
   const interval = useStorage<number>('ping-matrix-interval', 5000)
   const timeout = ref(5000)
   const syncTimers = ref(true)
@@ -98,21 +103,40 @@ export function usePingMatrix() {
     })
 
     const settled = await Promise.allSettled(tasks)
-    settled.forEach((item) => {
-      if (item.status !== 'fulfilled') return
+    // 将同一轮采集的多站数据聚合成一条日志，便于表格按行展示
+    const tickTimestamp = Date.now()
+    const results: TargetLogEntry[] = []
+    settled.forEach((item, index) => {
+      const fallbackTarget = targets.value[index]
+      if (item.status !== 'fulfilled') {
+        if (!fallbackTarget) return
+        results.push({
+          targetId: fallbackTarget.id,
+          targetName: fallbackTarget.name,
+          url: fallbackTarget.url,
+          status: 'error',
+          duration: timeout.value,
+          error: 'Unknown'
+        })
+        return
+      }
       const {
         target,
-        result: { timestamp, url, status, duration, error }
+        result: { url, status, duration, error }
       } = item.value
-      pushLog({
-        id: nanoid(),
-        timestamp,
+      results.push({
+        targetId: target.id,
+        targetName: target.name,
         url,
         status,
         duration,
-        error,
-        targetName: target.name
+        error
       })
+    })
+    pushLog({
+      id: nanoid(),
+      timestamp: tickTimestamp,
+      results
     })
   }
 
@@ -160,14 +184,12 @@ export function usePingMatrix() {
   })
 
   const latencyStats = computed(() => {
-    const latest = log.value.slice(0, targets.value.length)
-    return latest.reduce(
-      (acc, entry) => {
-        acc[entry.targetName] = entry.duration
-        return acc
-      },
-      {} as Record<string, number>
-    )
+    const latest = log.value[0]
+    if (!latest) return {}
+    return latest.results.reduce((acc, entry) => {
+      acc[entry.targetName] = entry.duration
+      return acc
+    }, {} as Record<string, number>)
   })
 
   return {

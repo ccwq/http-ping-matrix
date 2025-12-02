@@ -1,18 +1,36 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useVirtualList } from '@vueuse/core'
-import type { LogEntry } from '@/composables/usePingMatrix'
+import type { LogEntry, Target, TargetLogEntry } from '@/composables/usePingMatrix'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   log: LogEntry[]
+  targets: Target[]
 }>()
 
-const { t, locale } = useI18n()
+type LogRowWithCache = LogEntry & {
+  resultMap: Record<string, TargetLogEntry>
+}
 
-const source = computed(() => props.log)
+const { t, locale } = useI18n()
+const gridTemplateColumns = computed(() => {
+  const targetCount = Math.max(props.targets.length, 1)
+  return `140px repeat(${targetCount}, minmax(110px, 1fr))`
+})
+
+const source = computed<LogRowWithCache[]>(() =>
+  props.log.map((entry) => ({
+    ...entry,
+    // 预先缓存站点 -> 结果的映射，避免模板内重复查找
+    resultMap: entry.results.reduce((acc, item) => {
+      acc[item.targetId] = item
+      return acc
+    }, {} as Record<string, TargetLogEntry>)
+  }))
+)
 const { list, containerProps, wrapperProps } = useVirtualList(source, {
-  itemHeight: 32,
+  itemHeight: 36,
   overscan: 6
 })
 
@@ -33,7 +51,8 @@ const formatTimestamp = (timestamp: number) => {
   return `${time}.${ms}`
 }
 
-const resolveStatus = (entry: LogEntry) => {
+const resolveStatus = (entry?: TargetLogEntry) => {
+  if (!entry) return { text: '--', class: 'muted' }
   if (entry.status === 'timeout') return { text: 'T/O', class: 'timeout' }
   if (entry.status === 'error') return { text: 'ERR', class: 'error' }
   if (entry.duration <= 200) return { text: 'OK', class: 'success' }
@@ -41,13 +60,21 @@ const resolveStatus = (entry: LogEntry) => {
   return { text: 'DANGER', class: 'danger' }
 }
 
-const durationBadge = (entry: LogEntry) => {
+const durationBadge = (entry?: TargetLogEntry) => {
+  if (!entry) return 'muted'
   if (entry.status === 'timeout') return 'timeout'
   if (entry.status === 'error') return 'error'
   if (entry.duration <= 200) return 'success'
   if (entry.duration <= 800) return 'warn'
   return 'danger'
 }
+
+const formatCell = (entry?: TargetLogEntry) => {
+  if (!entry) return '--'
+  return `${entry.duration}ms ${resolveStatus(entry).text}`
+}
+
+const getResultForTarget = (row: LogRowWithCache, targetId: string) => row.resultMap[targetId]
 </script>
 
 <template>
@@ -56,25 +83,29 @@ const durationBadge = (entry: LogEntry) => {
       <span class="geek-title">{{ t('log.title') }}</span>
       <span class="meta">{{ t('log.total', { count: log.length }) }}</span>
     </header>
-    <div class="table-head">
+    <div class="table-head" :style="{ gridTemplateColumns }">
       <span>{{ t('log.columns.time') }}</span>
-      <span>{{ t('log.columns.target') }}</span>
-      <span>{{ t('log.columns.status') }}</span>
-      <span>{{ t('log.columns.ms') }}</span>
-      <span>{{ t('log.columns.error') }}</span>
+      <span v-for="target in targets" :key="target.id">
+        {{ target.name }}
+      </span>
     </div>
     <div v-bind="containerProps" class="table-body">
       <div v-bind="wrapperProps">
-        <div v-for="row in list" :key="row.data.id" class="log-row">
-          <span>{{ formatTimestamp(row.data.timestamp) }}</span>
-          <span>{{ row.data.targetName }}</span>
-          <span :class="['status-cell', resolveStatus(row.data).class]">
-            {{ resolveStatus(row.data).text }}
+        <div
+          v-for="row in list"
+          :key="row.data.id"
+          class="log-row"
+          :style="{ gridTemplateColumns }"
+        >
+          <span class="timestamp-cell">{{ formatTimestamp(row.data.timestamp) }}</span>
+          <span
+            v-for="target in targets"
+            :key="target.id"
+            :class="['target-cell', durationBadge(getResultForTarget(row.data, target.id))]"
+            :title="getResultForTarget(row.data, target.id)?.error ?? ''"
+          >
+            {{ formatCell(getResultForTarget(row.data, target.id)) }}
           </span>
-          <span :class="['duration-cell', durationBadge(row.data)]">
-            {{ row.data.duration }}ms
-          </span>
-          <span class="error-cell">{{ row.data.error ?? '--' }}</span>
         </div>
       </div>
     </div>
@@ -104,10 +135,10 @@ const durationBadge = (entry: LogEntry) => {
 .table-head,
 .log-row {
   display: grid;
-  grid-template-columns: 140px 120px 90px 90px 1fr;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   letter-spacing: 0.05em;
   align-items: center;
+  column-gap: 0.5rem;
 }
 
 .table-head {
@@ -116,7 +147,7 @@ const durationBadge = (entry: LogEntry) => {
 }
 
 .log-row {
-  height: 32px;
+  height: 36px;
   border-bottom: 1px solid rgba(0, 255, 255, 0.1);
 }
 
@@ -126,48 +157,35 @@ const durationBadge = (entry: LogEntry) => {
   overflow: auto;
 }
 
-.status-cell {
+.timestamp-cell {
   font-weight: 600;
 }
 
-.status-cell.success {
-  color: var(--color-accent);
-}
-.status-cell.warn {
-  color: var(--color-warn);
-}
-.status-cell.danger,
-.status-cell.timeout,
-.status-cell.error {
-  color: var(--color-danger);
-}
-
-.duration-cell {
-  padding-left: 0.5rem;
-}
-
-.duration-cell.success {
-  color: var(--color-accent);
-}
-.duration-cell.warn {
-  color: var(--color-warn);
-}
-.duration-cell.danger,
-.duration-cell.timeout,
-.duration-cell.error {
-  color: var(--color-danger);
-}
-
-.error-cell {
-  color: var(--color-muted);
+.target-cell {
+  font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.target-cell.success {
+  color: var(--color-accent);
+}
+.target-cell.warn {
+  color: var(--color-warn);
+}
+.target-cell.danger,
+.target-cell.timeout,
+.target-cell.error {
+  color: var(--color-danger);
+}
+.target-cell.muted {
+  color: var(--color-muted);
 }
 
 @media (max-width: 640px) {
   .table-head,
   .log-row {
-    grid-template-columns: 130px 100px 80px 80px 1fr;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
   }
 }
 </style>

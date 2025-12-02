@@ -30,13 +30,6 @@ const handleLocaleChange = (value: string) => {
     <div class="header-info">
       <div>
         <p class="geek-title">{{ t('app.title') }}</p>
-        <p class="status-line">
-          [ {{ t('app.system') }}:
-          <span :class="['status-flag', isRunning ? 'online' : 'offline']">
-            {{ isRunning ? t('app.statusOnline') : t('app.statusIdle') }}
-          </span>
-          ]
-        </p>
       </div>
       <div class="led-indicator" :class="{ online: isRunning }"></div>
     </div>
@@ -131,6 +124,7 @@ const handleLocaleChange = (value: string) => {
 
 .lang-switch {
   display: flex;
+  margin-left: auto;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;

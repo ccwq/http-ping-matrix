@@ -92,6 +92,6 @@ const handleLocaleChange = (value: string) => {
     />
 
     <LatencyChart :log="log" :targets="targets" />
-    <LogTable :log="log" />
+    <LogTable :log="log" :targets="targets" />
   </main>
 </template>
