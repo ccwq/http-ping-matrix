@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import BaseEChart from '@/components/BaseEChart.vue'
 import type { LogEntry, Target } from '@/composables/usePingMatrix'
 import type { EChartsOption } from 'echarts'
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const FIXED_WINDOW_MS = 5 * 60 * 1000
+const { t, locale } = useI18n()
 
 const groupedSeries = computed(() => {
   const groups: Record<string, [number, number][]> = {}
@@ -95,8 +97,18 @@ const chartOption = computed<EChartsOption>(() => {
           )
           .join('')
         const total = sorted.reduce((sum, item) => sum + (item.data?.[1] ?? 0), 0)
-        const header = `<div>TIME: ${time ? new Date(time).toLocaleTimeString() : '--'}</div>`
-        return `${header}${rows}<div style="margin-top:4px;color:#c9d1d9;">TOTAL: ${total}ms</div>`
+        const formatter = new Intl.DateTimeFormat(locale.value, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        })
+        const header = `<div>${t('chart.tooltipTime', {
+          value: time ? formatter.format(new Date(time)) : '--'
+        })}</div>`
+        return `${header}${rows}<div style="margin-top:4px;color:#c9d1d9;">${t('chart.tooltipTotal', {
+          value: total
+        })}</div>`
       }
     },
     xAxis: hasData
@@ -109,7 +121,7 @@ const chartOption = computed<EChartsOption>(() => {
         },
     yAxis: {
       type: 'value',
-      name: 'Latency (ms)',
+      name: t('chart.title'),
       splitLine: {
         show: true,
         lineStyle: { color: '#1f2937', type: 'dashed' as const }
@@ -140,8 +152,8 @@ const chartOption = computed<EChartsOption>(() => {
 <template>
   <section class="panel grid-area-chart chart-panel">
     <header class="panel-title">
-      <span class="geek-title">Latency (ms)</span>
-      <span class="meta">数据点：{{ log.length }}</span>
+      <span class="geek-title">{{ t('chart.title') }}</span>
+      <span class="meta">{{ t('chart.points', { count: log.length }) }}</span>
     </header>
     <BaseEChart :option="chartOption" class="chart-container" />
   </section>

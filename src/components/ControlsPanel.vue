@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 defineProps<{
   interval: number
   timeout: number
@@ -15,21 +17,29 @@ const emit = defineEmits<{
   (e: 'update:syncTimers', value: boolean): void
 }>()
 
-const formatMs = (value: number) => `${value}ms`
+const { t } = useI18n()
+
+const formatMs = (value: number) => t('controls.ms', { value })
 </script>
 
 <template>
   <section class="panel grid-area-controls controls-panel">
     <div class="controls-row">
-      <button class="btn" :disabled="isRunning" @click="emit('start')">[ START ]</button>
-      <button class="btn" :disabled="!isRunning" @click="emit('stop')">[ STOP ]</button>
-      <button class="btn" @click="emit('clear')">[ CLEAR LOG ]</button>
+      <button class="btn" :disabled="isRunning" @click="emit('start')">
+        {{ t('controls.start') }}
+      </button>
+      <button class="btn" :disabled="!isRunning" @click="emit('stop')">
+        {{ t('controls.stop') }}
+      </button>
+      <button class="btn" @click="emit('clear')">
+        {{ t('controls.clear') }}
+      </button>
     </div>
 
     <fieldset class="fieldset slider-fieldset">
-      <legend>[ INTERVAL ]</legend>
+      <legend>[ {{ t('controls.interval') }} ]</legend>
       <label class="slider-label">
-        <span>INTERVAL: {{ formatMs(interval) }}</span>
+        <span>{{ t('controls.interval') }}: {{ formatMs(interval) }}</span>
         <input
           type="range"
           :value="interval"
@@ -42,9 +52,9 @@ const formatMs = (value: number) => `${value}ms`
     </fieldset>
 
     <fieldset class="fieldset slider-fieldset">
-      <legend>[ TIMEOUT ]</legend>
+      <legend>[ {{ t('controls.timeout') }} ]</legend>
       <label class="slider-label">
-        <span>TIMEOUT: {{ formatMs(timeout) }}</span>
+        <span>{{ t('controls.timeout') }}: {{ formatMs(timeout) }}</span>
         <input
           type="range"
           :value="timeout"
@@ -61,7 +71,7 @@ const formatMs = (value: number) => `${value}ms`
           :checked="syncTimers"
           @change="emit('update:syncTimers', ($event.target as HTMLInputElement).checked)"
         />
-        <span>[ SYNC TIMEOUT TO INTERVAL ]</span>
+        <span>{{ t('controls.sync') }}</span>
       </label>
     </fieldset>
   </section>

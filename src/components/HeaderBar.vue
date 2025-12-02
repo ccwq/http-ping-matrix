@@ -1,16 +1,27 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 const props = defineProps<{
   layoutMode: string
   options: { id: string; label: string; hint: string }[]
   isRunning: boolean
+  languages: { id: string; label: string }[]
+  currentLocale: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:layout', value: string): void
+  (e: 'update:locale', value: string): void
 }>()
+
+const { t } = useI18n()
 
 const handleLayoutChange = (layoutId: string) => {
   emit('update:layout', layoutId)
+}
+
+const handleLocaleChange = (value: string) => {
+  emit('update:locale', value)
 }
 </script>
 
@@ -18,11 +29,11 @@ const handleLayoutChange = (layoutId: string) => {
   <header class="panel grid-area-header header-bar">
     <div class="header-info">
       <div>
-        <p class="geek-title">PING_MATRIX v1.0.0</p>
+        <p class="geek-title">{{ t('app.title') }}</p>
         <p class="status-line">
-          [ SYSTEM:
+          [ {{ t('app.system') }}:
           <span :class="['status-flag', isRunning ? 'online' : 'offline']">
-            {{ isRunning ? 'ONLINE' : 'IDLE' }}
+            {{ isRunning ? t('app.statusOnline') : t('app.statusIdle') }}
           </span>
           ]
         </p>
@@ -40,6 +51,14 @@ const handleLayoutChange = (layoutId: string) => {
           {{ preset.label }}
         </div>
       </div>
+      <div class="lang-switch">
+        <label>{{ t('lang.label') }}</label>
+        <select :value="currentLocale" @change="handleLocaleChange(($event.target as HTMLSelectElement).value)">
+          <option v-for="lang in languages" :key="lang.id" :value="lang.id">
+            {{ lang.label }}
+          </option>
+        </select>
+      </div>
       <a
         class="btn repo-link"
         href="https://github.com/"
@@ -49,7 +68,7 @@ const handleLayoutChange = (layoutId: string) => {
         [ GITHUB ]
       </a>
     </div>
-    <p class="layout-hint">布局提示：{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p>
+    <p class="layout-hint">{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p>
   </header>
 </template>
 
@@ -108,6 +127,21 @@ const handleLayoutChange = (layoutId: string) => {
 
 .repo-link {
   font-size: 0.75rem;
+}
+
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.lang-switch select {
+  background: #05070d;
+  color: var(--color-accent);
+  border: 1px solid var(--color-border);
+  font-family: inherit;
+  padding: 0.25rem 0.5rem;
 }
 
 .layout-hint {

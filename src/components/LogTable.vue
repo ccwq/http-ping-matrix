@@ -2,10 +2,13 @@
 import { computed } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import type { LogEntry } from '@/composables/usePingMatrix'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   log: LogEntry[]
 }>()
+
+const { t, locale } = useI18n()
 
 const source = computed(() => props.log)
 const { list, containerProps, wrapperProps } = useVirtualList(source, {
@@ -13,9 +16,19 @@ const { list, containerProps, wrapperProps } = useVirtualList(source, {
   overscan: 6
 })
 
+const timeFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+)
+
 const formatTimestamp = (timestamp: number) => {
   const date = new Date(timestamp)
-  const time = date.toLocaleTimeString('zh-CN', { hour12: false })
+  const time = timeFormatter.value.format(date)
   const ms = `${date.getMilliseconds()}`.padStart(3, '0')
   return `${time}.${ms}`
 }
@@ -40,15 +53,15 @@ const durationBadge = (entry: LogEntry) => {
 <template>
   <section class="panel grid-area-table log-panel">
     <header class="panel-title">
-      <span class="geek-title">[ LOG STREAM ]</span>
-      <span class="meta">总记录：{{ log.length }}</span>
+      <span class="geek-title">{{ t('log.title') }}</span>
+      <span class="meta">{{ t('log.total', { count: log.length }) }}</span>
     </header>
     <div class="table-head">
-      <span>TIME</span>
-      <span>TARGET</span>
-      <span>STATUS</span>
-      <span>MS</span>
-      <span>ERROR</span>
+      <span>{{ t('log.columns.time') }}</span>
+      <span>{{ t('log.columns.target') }}</span>
+      <span>{{ t('log.columns.status') }}</span>
+      <span>{{ t('log.columns.ms') }}</span>
+      <span>{{ t('log.columns.error') }}</span>
     </div>
     <div v-bind="containerProps" class="table-body">
       <div v-bind="wrapperProps">

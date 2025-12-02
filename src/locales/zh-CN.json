@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "PING_MATRIX v1.0.0",
+    "statusOnline": "在线",
+    "statusIdle": "空闲",
+    "system": "系统"
+  },
+  "controls": {
+    "start": "[ 开始 ]",
+    "stop": "[ 停止 ]",
+    "clear": "[ 清空日志 ]",
+    "interval": "轮询间隔",
+    "timeout": "超时时间",
+    "sync": "[ 同步超时到间隔 ]",
+    "ms": "{value}毫秒"
+  },
+  "layout": {
+    "matrix": "矩阵叠层",
+    "dual": "双列控制",
+    "wide": "宽屏聚焦",
+    "split": "左右分栏",
+    "hint": "{name}：{description}",
+    "matrixDesc": "控制/图表/表格纵向堆叠",
+    "dualDesc": "左列控制，右侧图表与表格",
+    "wideDesc": "图表横向拉伸，控制面板置右",
+    "splitDesc": "表格在左，图表和控制在右"
+  },
+  "chart": {
+    "title": "延迟 (ms)",
+    "points": "数据点：{count}",
+    "tooltipTotal": "总计：{value}ms",
+    "tooltipTime": "时间：{value}"
+  },
+  "log": {
+    "title": "[ 日志流 ]",
+    "total": "总记录：{count}",
+    "columns": {
+      "time": "时间",
+      "target": "目标",
+      "status": "状态",
+      "ms": "耗时",
+      "error": "错误"
+    }
+  },
+  "lang": {
+    "label": "语言",
+    "en": "英文",
+    "zhCN": "简体",
+    "zhTW": "繁体"
+  }
+}

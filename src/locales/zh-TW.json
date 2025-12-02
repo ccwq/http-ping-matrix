@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "PING_MATRIX v1.0.0",
+    "statusOnline": "在線",
+    "statusIdle": "閒置",
+    "system": "系統"
+  },
+  "controls": {
+    "start": "[ 開始 ]",
+    "stop": "[ 停止 ]",
+    "clear": "[ 清除記錄 ]",
+    "interval": "輪詢間隔",
+    "timeout": "逾時",
+    "sync": "[ 將逾時同步到間隔 ]",
+    "ms": "{value}毫秒"
+  },
+  "layout": {
+    "matrix": "矩陣堆疊",
+    "dual": "雙列控制",
+    "wide": "寬屏聚焦",
+    "split": "左右分欄",
+    "hint": "{name}：{description}",
+    "matrixDesc": "控制/圖表/表格垂直堆疊",
+    "dualDesc": "左列控制，右側圖表與表格",
+    "wideDesc": "圖表橫向拉伸，控制面板於右",
+    "splitDesc": "表格在左，圖表與控制在右"
+  },
+  "chart": {
+    "title": "延遲 (ms)",
+    "points": "資料點：{count}",
+    "tooltipTotal": "總計：{value}ms",
+    "tooltipTime": "時間：{value}"
+  },
+  "log": {
+    "title": "[ 日誌串流 ]",
+    "total": "總筆數：{count}",
+    "columns": {
+      "time": "時間",
+      "target": "目標",
+      "status": "狀態",
+      "ms": "耗時",
+      "error": "錯誤"
+    }
+  },
+  "lang": {
+    "label": "語言",
+    "en": "英文",
+    "zhCN": "簡體",
+    "zhTW": "繁體"
+  }
+}

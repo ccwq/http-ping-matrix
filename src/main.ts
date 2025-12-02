@@ -1,5 +1,22 @@
 import { createApp } from 'vue'
-import './style.css'
+import { createI18n } from 'vue-i18n'
 import App from './App.vue'
+import './style.css'
+import en from './locales/en.json'
+import zhCN from './locales/zh-CN.json'
+import zhTW from './locales/zh-TW.json'
 
-createApp(App).mount('#app')
+const savedLocale = localStorage.getItem('ping-matrix-locale') || 'en'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: savedLocale,
+  fallbackLocale: 'en',
+  messages: {
+    en,
+    'zh-CN': zhCN,
+    'zh-TW': zhTW
+  }
+})
+
+createApp(App).use(i18n).mount('#app')

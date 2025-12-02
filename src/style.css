@@ -33,7 +33,7 @@ body {
 
 #app {
   flex: 1;
-  min-height: calc(100vh - 2rem);
+  min-height: 100vh;
   padding: 1rem;
   display: flex;
 }
@@ -48,7 +48,7 @@ a {
   gap: 1rem;
   width: 100%;
   margin: 0;
-  height: calc(100% - 1);
+  height: calc(100vh - 2rem);
   grid-auto-rows: minmax(0, 1fr);
 }
 
@@ -211,8 +211,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .layout-d {
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 600px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) 260px;
   grid-template-areas:
     'header header'
     'table chart'

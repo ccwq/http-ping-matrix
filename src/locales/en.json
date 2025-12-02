@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "PING_MATRIX v1.0.0",
+    "statusOnline": "ONLINE",
+    "statusIdle": "IDLE",
+    "system": "SYSTEM"
+  },
+  "controls": {
+    "start": "[ START ]",
+    "stop": "[ STOP ]",
+    "clear": "[ CLEAR LOG ]",
+    "interval": "INTERVAL",
+    "timeout": "TIMEOUT",
+    "sync": "[ SYNC TIMEOUT TO INTERVAL ]",
+    "ms": "{value}ms"
+  },
+  "layout": {
+    "matrix": "Matrix Stack",
+    "dual": "Dual Column",
+    "wide": "Wide Focus",
+    "split": "Split Stack",
+    "hint": "{name}: {description}",
+    "matrixDesc": "Controls + Chart + Table in vertical stack",
+    "dualDesc": "Controls left, chart/table on the right",
+    "wideDesc": "Chart expanded horizontally, controls on side",
+    "splitDesc": "Table left, chart & controls on right"
+  },
+  "chart": {
+    "title": "Latency (ms)",
+    "points": "Points: {count}",
+    "tooltipTotal": "TOTAL: {value}ms",
+    "tooltipTime": "TIME: {value}"
+  },
+  "log": {
+    "title": "[ LOG STREAM ]",
+    "total": "Records: {count}",
+    "columns": {
+      "time": "TIME",
+      "target": "TARGET",
+      "status": "STATUS",
+      "ms": "MS",
+      "error": "ERROR"
+    }
+  },
+  "lang": {
+    "label": "Language",
+    "en": "English",
+    "zhCN": "简体中文",
+    "zhTW": "繁體中文"
+  }
+}
