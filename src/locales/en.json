@@ -1,9 +1,10 @@
 {
   "app": {
-    "title": "PING_MATRIX v1.0.0",
+    "title": "PING_MATRIX v{version}",
     "statusOnline": "ONLINE",
     "statusIdle": "IDLE",
-    "system": "SYSTEM"
+    "system": "SYSTEM",
+    "viewOnGithub": "[ VIEW ON GITHUB ]"
   },
   "controls": {
     "start": "[ START ]",

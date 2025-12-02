@@ -1,9 +1,10 @@
 {
   "app": {
-    "title": "PING_MATRIX v1.0.0",
+    "title": "PING_MATRIX v{version}",
     "statusOnline": "在線",
     "statusIdle": "閒置",
-    "system": "系統"
+    "system": "系統",
+    "viewOnGithub": "[ 前往 GitHub ]"
   },
   "controls": {
     "start": "[ 開始 ]",

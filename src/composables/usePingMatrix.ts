@@ -1,6 +1,7 @@
-import { computed, ref, watch } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { nanoid } from 'nanoid'
-import { useIntervalFn, useStorage } from '@vueuse/core'
+import { useStorage } from '@vueuse/core'
+import { clearInterval as workerClearInterval, setInterval as workerSetInterval } from 'worker-timers'
 
 export type LogStatus = 'success' | 'timeout' | 'error'
 
@@ -82,11 +83,12 @@ async function ping(url: string, timeout: number) {
 
 export function usePingMatrix() {
   const targets = ref<Target[]>([...DEFAULT_TARGETS])
-const log = ref<LogEntry[]>([])
-  const interval = useStorage<number>('ping-matrix-interval', 5000)
-  const timeout = ref(5000)
+  const log = ref<LogEntry[]>([])
+  const interval = useStorage<number>('ping-matrix-interval', 800)
+  const timeout = ref(800)
   const syncTimers = ref(true)
   const isRunning = ref(false)
+  let workerTimerId: number | null = null
 
   const pushLog = (entry: LogEntry) => {
     log.value.unshift(entry)
@@ -140,26 +142,38 @@ const log = ref<LogEntry[]>([])
     })
   }
 
-  const { pause, resume } = useIntervalFn(
-    async () => {
+  const stopWorkerTimer = () => {
+    if (workerTimerId !== null) {
+      workerClearInterval(workerTimerId)
+      workerTimerId = null
+    }
+  }
+
+  const startWorkerTimer = () => {
+    if (workerTimerId !== null) {
+      workerClearInterval(workerTimerId)
+    }
+    workerTimerId = workerSetInterval(async () => {
       if (!isRunning.value) return
       await runTick()
-    },
-    interval,
-    { immediate: false }
-  )
+    }, interval.value)
+  }
+
+  onScopeDispose(() => {
+    stopWorkerTimer()
+  })
 
   const start = async () => {
     if (isRunning.value) return
     isRunning.value = true
     await runTick()
-    resume()
+    startWorkerTimer()
   }
 
   const stop = () => {
     if (!isRunning.value) return
     isRunning.value = false
-    pause()
+    stopWorkerTimer()
   }
 
   const clearLog = () => {
@@ -178,8 +192,7 @@ const log = ref<LogEntry[]>([])
 
   watch(interval, () => {
     if (isRunning.value) {
-      pause()
-      resume()
+      startWorkerTimer()
     }
   })
 

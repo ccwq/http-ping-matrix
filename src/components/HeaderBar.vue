@@ -15,6 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const appVersion = __APP_VERSION__
 
 const handleLayoutChange = (layoutId: string) => {
   emit('update:layout', layoutId)
@@ -29,7 +30,9 @@ const handleLocaleChange = (value: string) => {
   <header class="panel grid-area-header header-bar">
     <div class="header-info">
       <div>
-        <p class="geek-title">{{ t('app.title') }}</p>
+        <p class="geek-title">
+          {{ t('app.title', { version: appVersion }) }}
+        </p>
       </div>
       <div class="led-indicator" :class="{ online: isRunning }"></div>
     </div>
@@ -54,11 +57,11 @@ const handleLocaleChange = (value: string) => {
       </div>
       <a
         class="btn repo-link"
-        href="https://github.com/"
+        href="https://github.com/ccwq/http-ping-matrix"
         target="_blank"
         rel="noreferrer noopener"
       >
-        [ GITHUB ]
+        {{ t('app.viewOnGithub') }}
       </a>
     </div>
     <p class="layout-hint">{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p>

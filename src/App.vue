@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useStorage } from '@vueuse/core'
 import HeaderBar from '@/components/HeaderBar.vue'
@@ -12,7 +12,7 @@ type LayoutMode = 'a' | 'b' | 'c' | 'd'
 
 const { targets, log, interval, timeout, syncTimers, isRunning, start, stop, clearLog } = usePingMatrix()
 
-const layoutMode = useStorage<LayoutMode>('ping-matrix-layout', 'a')
+const layoutMode = useStorage<LayoutMode>('ping-matrix-layout', 'b')
 const layoutDefs = [
   { id: 'a', nameKey: 'layout.matrix', descKey: 'layout.matrixDesc' },
   { id: 'b', nameKey: 'layout.dual', descKey: 'layout.dualDesc' },
@@ -64,6 +64,10 @@ const handleLocaleChange = (value: string) => {
   locale.value = value
   localStorage.setItem('ping-matrix-locale', value)
 }
+
+onMounted(() => {
+  start()
+})
 </script>
 
 <template>

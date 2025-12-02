@@ -4,6 +4,9 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   base: '/http-ping-matrix/',
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0')
+  },
   plugins: [vue()],
   resolve: {
     alias: {
