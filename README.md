@@ -1,5 +1,7 @@
 # Ping Matrix
 
+**Live Demo**: [https://ccwq.github.io/http-ping-matrix](https://ccwq.github.io/http-ping-matrix)
+
 Ping Matrix is a Vite + Vue 3 + TypeScript powered network probing dashboard with a retro geek/pixel aesthetic. It polls a set of target hosts via `fetch` + `AbortController`, records latency/status/errors, and renders stacked line charts plus a virtualized log stream in real time.
 
 > 中文说明请查看 [README-zh-ch.md](README-zh-ch.md)。
