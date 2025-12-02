@@ -110,7 +110,7 @@ const durationBadge = (entry: LogEntry) => {
 .table-body {
   flex: 1;
   min-height: 0;
-  overflow: hidden auto;
+  overflow: auto;
 }
 
 .status-cell {

@@ -73,6 +73,7 @@ const formatMs = (value: number) => `${value}ms`
   flex-direction: column;
   gap: 0.75rem;
   height: 100%;
+  min-height: 0;
 }
 
 .controls-row {

@@ -60,6 +60,7 @@ const handleLayoutChange = (layoutId: string) => {
   justify-content: space-between;
   gap: 0.65rem;
   height: 100%;
+  min-height: 0;
 }
 
 .header-info {
