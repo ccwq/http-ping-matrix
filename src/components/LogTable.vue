@@ -19,6 +19,10 @@ const gridTemplateColumns = computed(() => {
   return `minmax(110px, 1fr) repeat(${targetCount}, minmax(90px, 1fr))`
 })
 
+const totalFormatter = computed(() => new Intl.NumberFormat(locale.value))
+const totalCount = computed(() => props.log.length)
+const formattedTotal = computed(() => totalFormatter.value.format(totalCount.value))
+
 const source = computed<LogRowWithCache[]>(() =>
   props.log.map((entry) => ({
     ...entry,
@@ -81,7 +85,7 @@ const getResultForTarget = (row: LogRowWithCache, targetId: string) => row.resul
   <section class="panel grid-area-table log-panel">
     <header class="panel-title">
       <span class="geek-title">{{ t('log.title') }}</span>
-      <span class="meta">{{ t('log.total', { count: log.length }) }}</span>
+      <span class="meta">{{ t('log.total', { count: formattedTotal }) }}</span>
     </header>
     <div class="table-head" :style="{ gridTemplateColumns }">
       <span>{{ t('log.columns.time') }}</span>

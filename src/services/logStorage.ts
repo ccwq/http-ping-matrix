@@ -1,7 +1,7 @@
 import type { LogEntry } from '@/composables/usePingMatrix'
 import { LOG_PERSISTENCE_CONFIG, LOG_RETENTION_MS } from '@/config/logConfig'
 
-const { dbName, dbVersion, storeName, maxEntries } = LOG_PERSISTENCE_CONFIG
+const { dbName, dbVersion, storeName } = LOG_PERSISTENCE_CONFIG
 
 let databasePromise: Promise<IDBDatabase> | null = null
 
@@ -40,7 +40,7 @@ const sanitizeLogs = (logs: LogEntry[]) => logs.map((entry) => cloneLogEntry(ent
 
 const applyRetention = (logs: LogEntry[], now = Date.now()) => {
   const cutoff = now - LOG_RETENTION_MS
-  return logs.filter((entry) => entry.timestamp >= cutoff).slice(0, maxEntries)
+  return logs.filter((entry) => entry.timestamp >= cutoff)
 }
 
 export const replaceAllLogs = async (logs: LogEntry[]) => {

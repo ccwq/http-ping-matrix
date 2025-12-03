@@ -2,7 +2,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { nanoid } from 'nanoid'
 import { useStorage } from '@vueuse/core'
 import { clearInterval as workerClearInterval, setInterval as workerSetInterval } from 'worker-timers'
-import { LOG_PERSISTENCE_CONFIG } from '@/config/logConfig'
+import { LOG_RETENTION_MS } from '@/config/logConfig'
 import { loadPersistedLogs, replaceAllLogs } from '@/services/logStorage'
 
 export type LogStatus = 'success' | 'timeout' | 'error'
@@ -38,8 +38,6 @@ const DEFAULT_TARGETS: Target[] = [
   { id: 'youtube', name: 'youtube', url: 'https://www.youtube.com/favicon.ico?1764636922617', color: '#ff4d4f' },
   { id: 'cloudflare', name: 'cloudflare', url: 'https://www.cloudflare.com/favicon.ico?1764636922572', color: '#ff7b00' }
 ]
-
-const LOG_LIMIT = LOG_PERSISTENCE_CONFIG.maxEntries
 
 async function ping(url: string, timeout: number) {
   const controller = new AbortController()
@@ -100,10 +98,16 @@ export function usePingMatrix() {
     }
   }
 
+  const pruneLogs = () => {
+    const cutoff = Date.now() - LOG_RETENTION_MS
+    log.value = log.value.filter((entry) => entry.timestamp >= cutoff)
+  }
+
   const loadLogs = async () => {
     try {
       const existing = await loadPersistedLogs()
       log.value = existing
+      pruneLogs()
     } catch (error) {
       console.error('加载日志失败', error)
     }
@@ -111,7 +115,8 @@ export function usePingMatrix() {
   void loadLogs()
 
   const pushLog = async (entry: LogEntry) => {
-    log.value = [entry, ...log.value].slice(0, LOG_LIMIT)
+    log.value = [entry, ...log.value]
+    pruneLogs()
     await persistLogs()
   }
 
