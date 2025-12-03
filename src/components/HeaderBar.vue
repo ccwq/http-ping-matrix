@@ -12,6 +12,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:layout', value: string): void
   (e: 'update:locale', value: string): void
+  (e: 'export-config'): void
+  (e: 'import-config', file: File): void
+  (e: 'export-logs'): void
+  (e: 'import-logs', file: File): void
 }>()
 
 const { t } = useI18n()
@@ -23,6 +27,19 @@ const handleLayoutChange = (layoutId: string) => {
 
 const handleLocaleChange = (value: string) => {
   emit('update:locale', value)
+}
+
+const handleFileChange = (event: Event, type: 'config' | 'logs') => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) {
+    if (type === 'config') {
+      emit('import-config', file)
+    } else {
+      emit('import-logs', file)
+    }
+  }
+  input.value = ''
 }
 </script>
 
@@ -55,6 +72,28 @@ const handleLocaleChange = (value: string) => {
           </option>
         </select>
       </div>
+      <div class="data-ops">
+        <div class="ops-group">
+          <span class="ops-label">{{ t('data.configTitle') }}</span>
+          <button class="btn btn-compact" type="button" @click="emit('export-config')">
+            {{ t('data.exportConfig') }}
+          </button>
+          <label class="btn btn-compact file-input-btn">
+            {{ t('data.importConfig') }}
+            <input type="file" accept="application/json" @change="handleFileChange($event, 'config')" />
+          </label>
+        </div>
+        <div class="ops-group">
+          <span class="ops-label">{{ t('data.logTitle') }}</span>
+          <button class="btn btn-compact" type="button" @click="emit('export-logs')">
+            {{ t('data.exportLogs') }}
+          </button>
+          <label class="btn btn-compact file-input-btn">
+            {{ t('data.importLogs') }}
+            <input type="file" accept="application/json" @change="handleFileChange($event, 'logs')" />
+          </label>
+        </div>
+      </div>
       <a
         class="btn repo-link"
         href="https://github.com/ccwq/http-ping-matrix"
@@ -64,7 +103,7 @@ const handleLocaleChange = (value: string) => {
         {{ t('app.viewOnGithub') }}
       </a>
     </div>
-    <p class="layout-hint">{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p>
+    <!-- <p class="layout-hint">{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p> -->
   </header>
 </template>
 
@@ -116,9 +155,10 @@ const handleLocaleChange = (value: string) => {
 .header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
+  --header-control-height: 32px;
 }
 
 .repo-link {
@@ -138,13 +178,68 @@ const handleLocaleChange = (value: string) => {
   color: var(--color-accent);
   border: 1px solid var(--color-border);
   font-family: inherit;
-  padding: 0.25rem 0.5rem;
+  padding: 0 0.5rem;
+  min-height: var(--header-control-height);
+  display: inline-flex;
+  align-items: center;
 }
 
 .layout-hint {
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-muted);
+}
+
+.header-actions .btn {
+  min-height: var(--header-control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 0.75rem;
+}
+
+.data-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.ops-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.ops-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--header-control-height);
+}
+
+.btn-compact {
+  font-size: 0.65rem;
+  padding: 0 0.6rem;
+}
+
+.file-input-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-input-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 @media (max-width: 640px) {
@@ -155,6 +250,11 @@ const handleLocaleChange = (value: string) => {
   .header-actions {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .data-ops {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

@@ -156,12 +156,17 @@ input[type='range']::-moz-range-thumb {
 
 .layout-pill {
   border: 1px solid var(--color-border);
-  padding: 0.35rem 0.75rem;
+  padding: 0 0.75rem;
+  min-height: 32px;
   cursor: pointer;
   text-transform: uppercase;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   transition: background var(--transition-fast), color var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .layout-pill.active {

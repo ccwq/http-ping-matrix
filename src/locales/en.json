@@ -19,6 +19,23 @@
     "statusStopped": "STOPPED",
     "intervalHint": "Applies instantly to the next polling round."
   },
+  "data": {
+    "configTitle": "CONFIG MANAGEMENT",
+    "exportConfig": "[ EXPORT CONFIG ]",
+    "importConfig": "[ IMPORT CONFIG ]",
+    "configHint": "Share this JSON file to reuse your setup anywhere.",
+    "logTitle": "LOG TRANSFER",
+    "exportLogs": "[ EXPORT LOG JSON ]",
+    "importLogs": "[ IMPORT LOG JSON ]",
+    "logHint": "Includes retained history entries from IndexedDB.",
+    "messages": {
+      "configImportSuccess": "Config imported successfully.",
+      "configImportFailed": "Config import failed: {reason}",
+      "logExportFailed": "Log export failed: {reason}",
+      "logImportSuccess": "Log import finished with {count} entries.",
+      "logImportFailed": "Log import failed: {reason}"
+    }
+  },
   "layout": {
     "matrix": "Matrix Stack",
     "dual": "Dual Column",

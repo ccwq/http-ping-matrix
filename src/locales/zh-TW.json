@@ -19,6 +19,23 @@
     "statusStopped": "已停止",
     "intervalHint": "調整滑桿後會立即影響下一輪輪詢"
   },
+  "data": {
+    "configTitle": "設定管理",
+    "exportConfig": "[ 匯出設定 ]",
+    "importConfig": "[ 匯入設定 ]",
+    "configHint": "將 JSON 檔帶到其他裝置即可套用相同設定。",
+    "logTitle": "日誌搬移",
+    "exportLogs": "[ 匯出日誌 JSON ]",
+    "importLogs": "[ 匯入日誌 JSON ]",
+    "logHint": "涵蓋目前保留的探測紀錄。",
+    "messages": {
+      "configImportSuccess": "設定匯入成功。",
+      "configImportFailed": "設定匯入失敗：{reason}",
+      "logExportFailed": "日誌匯出失敗：{reason}",
+      "logImportSuccess": "日誌匯入完成，共 {count} 筆。",
+      "logImportFailed": "日誌匯入失敗：{reason}"
+    }
+  },
   "layout": {
     "matrix": "矩陣堆疊",
     "dual": "雙列控制",

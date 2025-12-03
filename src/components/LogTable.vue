@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import type { LogEntry, Target, TargetLogEntry } from '@/composables/usePingMatrix'
 import { useI18n } from 'vue-i18n'
+import LogFileIcon from '~icons/mdi/file'
 
 const props = defineProps<{
   log: LogEntry[]
@@ -84,7 +85,10 @@ const getResultForTarget = (row: LogRowWithCache, targetId: string) => row.resul
 <template>
   <section class="panel grid-area-table log-panel">
     <header class="panel-title">
-      <span class="geek-title">{{ t('log.title') }}</span>
+      <span class="geek-title">
+        <LogFileIcon class="log-icon" aria-hidden="true" />
+        {{ t('log.title') }}
+      </span>
       <span class="meta">{{ t('log.total', { count: formattedTotal }) }}</span>
     </header>
     <div class="table-head" :style="{ gridTemplateColumns }">
@@ -130,6 +134,13 @@ const getResultForTarget = (row: LogRowWithCache, targetId: string) => row.resul
   justify-content: space-between;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
+}
+
+.log-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
 }
 
 .meta {

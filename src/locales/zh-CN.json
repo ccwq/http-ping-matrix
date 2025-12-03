@@ -19,6 +19,23 @@
     "statusStopped": "已停止",
     "intervalHint": "拖动滑块后立即作用于下一轮探测"
   },
+  "data": {
+    "configTitle": "配置管理",
+    "exportConfig": "[ 导出配置 ]",
+    "importConfig": "[ 导入配置 ]",
+    "configHint": "导出的 JSON 可在其他设备导入以复用设置",
+    "logTitle": "日志迁移",
+    "exportLogs": "[ 导出日志 JSON ]",
+    "importLogs": "[ 导入日志 JSON ]",
+    "logHint": "导入导出包含最近保留的探测记录",
+    "messages": {
+      "configImportSuccess": "配置导入成功",
+      "configImportFailed": "配置导入失败：{reason}",
+      "logExportFailed": "日志导出失败：{reason}",
+      "logImportSuccess": "日志导入完成，共 {count} 条记录",
+      "logImportFailed": "日志导入失败：{reason}"
+    }
+  },
   "layout": {
     "matrix": "矩阵叠层",
     "dual": "双列控制",

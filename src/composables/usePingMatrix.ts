@@ -84,9 +84,9 @@ async function ping(url: string, timeout: number) {
 export function usePingMatrix() {
   const targets = ref<Target[]>([...DEFAULT_TARGETS])
   const log = ref<LogEntry[]>([])
-  const interval = useStorage<number>('ping-matrix-interval', 800)
-  const timeout = ref(800)
-  const syncTimers = ref(true)
+  const interval = useStorage<number>('ping-matrix-interval', 1000)
+  const timeout = useStorage<number>('ping-matrix-timeout', 3000)
+  const syncTimers = useStorage<boolean>('ping-matrix-sync-timers', false)
   const isRunning = ref(false)
   let workerTimerId: number | null = null
 

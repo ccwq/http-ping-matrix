@@ -20,6 +20,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const formatMs = (value: number) => t('controls.ms', { value })
+
 </script>
 
 <template>
@@ -66,7 +67,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
           @input="emit('update:interval', Number(($event.target as HTMLInputElement).value))"
         />
       </label>
-      <p class="helper-text">{{ t('controls.intervalHint') }}</p>
+      <!-- <p class="helper-text">{{ t('controls.intervalHint') }}</p> -->
     </fieldset>
 
     <fieldset class="fieldset slider-fieldset">
@@ -92,6 +93,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
         <span>{{ t('controls.sync') }}</span>
       </label>
     </fieldset>
+
   </section>
 </template>
 
