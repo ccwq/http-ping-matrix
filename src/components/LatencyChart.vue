@@ -79,10 +79,10 @@ const buildSeries = computed(() =>
     stack: 'latency' as const,
     color: target.color,
     areaStyle: { opacity: 0.35 },
-    lineStyle: { width: 2 },
+    lineStyle: { width: 0.5 },
     emphasis: {
       focus: 'series' as const,
-      lineStyle: { width: 3 }
+      lineStyle: { width: 0.5 }
     },
     data: groupedSeries.value[target.name] ?? []
   }))

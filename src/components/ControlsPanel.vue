@@ -43,7 +43,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
         <input
           type="range"
           :value="interval"
-          min="1000"
+          min="500"
           max="30000"
           step="500"
           @input="emit('update:interval', Number(($event.target as HTMLInputElement).value))"

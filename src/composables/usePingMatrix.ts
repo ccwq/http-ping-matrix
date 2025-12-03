@@ -28,16 +28,17 @@ export interface LogEntry {
 }
 
 const DEFAULT_TARGETS: Target[] = [
-  { id: nanoid(), name: 'taobao', url: 'https://www.taobao.com/favicon.ico?1764636922369', color: '#39ff14' },
-  { id: nanoid(), name: 'baidu', url: 'https://www.baidu.com/favicon.ico?1764636922421', color: '#00c8ff' },
-  { id: nanoid(), name: 'wechat', url: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico?1764636922469', color: '#ff00c3' },
-  { id: nanoid(), name: 'chatgpt', url: 'https://chatgpt.com/favicon.ico?1764636922717', color: '#ffd500' },
-  { id: nanoid(), name: 'github', url: 'https://github.com/favicon.ico?1764636922671', color: '#8b5cf6' },
-  { id: nanoid(), name: 'youtube', url: 'https://www.youtube.com/favicon.ico?1764636922617', color: '#ff4d4f' },
-  { id: nanoid(), name: 'cloudflare', url: 'https://www.cloudflare.com/favicon.ico?1764636922572', color: '#ff7b00' }
+  // { id: 'taobao', name: 'taobao', url: 'https://www.taobao.com/favicon.ico?1764636922369', color: '#39ff14' },
+  { id: 'baidu', name: 'baidu', url: 'https://www.baidu.com/favicon.ico?1764636922421', color: '#00c8ff' },
+  { id: 'wechat', name: 'wechat', url: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico?1764636922469', color: '#ff00c3' },
+  // { id: 'chatgpt', name: 'chatgpt', url: 'https://chatgpt.com/favicon.ico?1764636922717', color: '#ffd500' },
+  { id: 'github', name: 'github', url: 'https://github.com/favicon.ico?1764636922671', color: '#8b5cf6' },
+  { id: 'youtube', name: 'youtube', url: 'https://www.youtube.com/favicon.ico?1764636922617', color: '#ff4d4f' },
+  { id: 'cloudflare', name: 'cloudflare', url: 'https://www.cloudflare.com/favicon.ico?1764636922572', color: '#ff7b00' }
 ]
 
-const LOG_LIMIT = 1000
+// 日志存储限制
+const STORAGE_LOG_LIMIT = 500
 
 async function ping(url: string, timeout: number) {
   const controller = new AbortController()
@@ -83,18 +84,24 @@ async function ping(url: string, timeout: number) {
 
 export function usePingMatrix() {
   const targets = ref<Target[]>([...DEFAULT_TARGETS])
-  const log = ref<LogEntry[]>([])
+  const persistedLog = useStorage<LogEntry[]>('ping-matrix-log', [])
+  if (persistedLog.value.length > STORAGE_LOG_LIMIT) {
+    persistedLog.value = persistedLog.value.slice(0, STORAGE_LOG_LIMIT)
+  }
+  const log = ref<LogEntry[]>([...persistedLog.value])
   const interval = useStorage<number>('ping-matrix-interval', 800)
   const timeout = ref(800)
   const syncTimers = ref(true)
   const isRunning = ref(false)
   let workerTimerId: number | null = null
 
+  const resetPersistence = () => {
+    persistedLog.value = log.value.slice(0, STORAGE_LOG_LIMIT)
+  }
+
   const pushLog = (entry: LogEntry) => {
     log.value.unshift(entry)
-    if (log.value.length > LOG_LIMIT) {
-      log.value.splice(LOG_LIMIT)
-    }
+    resetPersistence()
   }
 
   const runTick = async () => {
@@ -178,6 +185,7 @@ export function usePingMatrix() {
 
   const clearLog = () => {
     log.value = []
+    persistedLog.value = []
   }
 
   watch(

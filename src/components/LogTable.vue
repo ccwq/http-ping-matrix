@@ -16,7 +16,7 @@ type LogRowWithCache = LogEntry & {
 const { t, locale } = useI18n()
 const gridTemplateColumns = computed(() => {
   const targetCount = Math.max(props.targets.length, 1)
-  return `140px repeat(${targetCount}, minmax(110px, 1fr))`
+  return `minmax(110px, 1fr) repeat(${targetCount}, minmax(90px, 1fr))`
 })
 
 const source = computed<LogRowWithCache[]>(() =>
