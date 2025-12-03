@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import IconPlay from '~icons/mdi/play'
+import IconStop from '~icons/mdi/stop'
+import IconDelete from '~icons/mdi/delete-sweep'
+import IconPower from '~icons/mdi/power'
+import IconLink from '~icons/mdi/link-variant'
+import IconTimer from '~icons/mdi/timer-sand-full'
 
 defineProps<{
   interval: number
@@ -20,27 +26,48 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const formatMs = (value: number) => t('controls.ms', { value })
-
 </script>
 
 <template>
   <section class="panel grid-area-controls controls-panel">
     <div class="controls-row">
-      <button class="btn" :disabled="isRunning" @click="emit('start')">
-        {{ t('controls.start') }}
+      <button
+        class="icon-btn success"
+        type="button"
+        :disabled="isRunning"
+        :title="t('controls.start')"
+        aria-label="start"
+        @click="emit('start')"
+      >
+        <IconPlay class="icon" aria-hidden="true" />
       </button>
-      <button class="btn" :disabled="!isRunning" @click="emit('stop')">
-        {{ t('controls.stop') }}
+      <button
+        class="icon-btn danger"
+        type="button"
+        :disabled="!isRunning"
+        :title="t('controls.stop')"
+        aria-label="stop"
+        @click="emit('stop')"
+      >
+        <IconStop class="icon" aria-hidden="true" />
       </button>
-      <button class="btn" @click="emit('clear')">
-        {{ t('controls.clear') }}
+      <button
+        class="icon-btn ghost"
+        type="button"
+        :title="t('controls.clear')"
+        aria-label="clear logs"
+        @click="emit('clear')"
+      >
+        <IconDelete class="icon" aria-hidden="true" />
       </button>
 
-      <div class="status-indicator">
-        <span class="status-label">{{ t('controls.status') }}</span>
-        <span :class="['status-chip', { 'status-chip--running': isRunning }]">
-          {{ isRunning ? t('controls.statusRunning') : t('controls.statusStopped') }}
-        </span>
+      <div class="status-indicator" :title="t('controls.status')">
+        <IconPower
+          class="icon"
+          :class="['status-power', { 'status-power--running': isRunning }]"
+          aria-hidden="true"
+        />
+        <span>{{ isRunning ? t('controls.statusRunning') : t('controls.statusStopped') }}</span>
       </div>
 
       <label class="sync-row sync-row--at-top">
@@ -49,15 +76,20 @@ const formatMs = (value: number) => t('controls.ms', { value })
           :checked="syncTimers"
           @change="emit('update:syncTimers', ($event.target as HTMLInputElement).checked)"
         />
-        <span>{{ t('controls.sync') }}</span>
+        <span class="inline-icon-label">
+          <IconLink class="icon" aria-hidden="true" />
+          {{ t('controls.sync') }}
+        </span>
       </label>
     </div>
 
-  
     <fieldset class="fieldset slider-fieldset">
       <legend>[ {{ t('controls.interval') }} ]</legend>
       <label class="slider-label">
-        <span>{{ t('controls.interval') }}: {{ formatMs(interval) }}</span>
+        <span class="inline-icon-label">
+          <IconTimer class="icon" aria-hidden="true" />
+          {{ formatMs(interval) }}
+        </span>
         <input
           type="range"
           :value="interval"
@@ -67,13 +99,16 @@ const formatMs = (value: number) => t('controls.ms', { value })
           @input="emit('update:interval', Number(($event.target as HTMLInputElement).value))"
         />
       </label>
-      <!-- <p class="helper-text">{{ t('controls.intervalHint') }}</p> -->
+      <p class="helper-text">{{ t('controls.intervalHint') }}</p>
     </fieldset>
 
     <fieldset class="fieldset slider-fieldset">
       <legend>[ {{ t('controls.timeout') }} ]</legend>
       <label class="slider-label">
-        <span>{{ t('controls.timeout') }}: {{ formatMs(timeout) }}</span>
+        <span class="inline-icon-label">
+          <IconTimer class="icon" aria-hidden="true" />
+          {{ formatMs(timeout) }}
+        </span>
         <input
           type="range"
           :value="timeout"
@@ -90,7 +125,10 @@ const formatMs = (value: number) => t('controls.ms', { value })
           :checked="syncTimers"
           @change="emit('update:syncTimers', ($event.target as HTMLInputElement).checked)"
         />
-        <span>{{ t('controls.sync') }}</span>
+        <span class="inline-icon-label">
+          <IconLink class="icon" aria-hidden="true" />
+          {{ t('controls.sync') }}
+        </span>
       </label>
     </fieldset>
 
@@ -119,20 +157,18 @@ const formatMs = (value: number) => t('controls.ms', { value })
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   margin-left: auto;
-}
-
-.status-chip {
-  border: 1px solid var(--color-border);
-  padding: 0.1rem 0.65rem;
-  border-radius: 999px;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
-.status-chip--running {
-  border-color: var(--color-accent);
+.status-power {
+  color: var(--color-muted);
+}
+
+.status-power--running {
   color: var(--color-accent);
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+  border-radius: 50%;
 }
 
 .slider-fieldset {
@@ -147,6 +183,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
   gap: 0.35rem;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
+
 }
 
 .sync-row {
@@ -167,6 +204,13 @@ const formatMs = (value: number) => t('controls.ms', { value })
   margin: 0;
   font-size: 0.7rem;
   color: var(--color-muted);
+}
+
+.inline-icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  letter-spacing: 0.05em;
 }
 
 input[type='checkbox'] {

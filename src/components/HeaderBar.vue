@@ -1,5 +1,16 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import IconLayoutGrid from '~icons/mdi/view-grid'
+import IconLayoutColumns from '~icons/mdi/view-column'
+import IconLayoutWide from '~icons/mdi/view-parallel'
+import IconLayoutSplit from '~icons/mdi/view-split-vertical'
+import IconTranslate from '~icons/mdi/translate'
+import IconDownload from '~icons/mdi/download'
+import IconUpload from '~icons/mdi/upload'
+import IconGithub from '~icons/mdi/github'
+import IconCog from '~icons/mdi/cog'
+import IconHistory from '~icons/mdi/history'
 
 const props = defineProps<{
   layoutMode: string
@@ -20,6 +31,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const appVersion = __APP_VERSION__
+const fileInputConfig = ref<HTMLInputElement | null>(null)
+const fileInputLogs = ref<HTMLInputElement | null>(null)
+const langSelect = ref<HTMLSelectElement | null>(null)
 
 const handleLayoutChange = (layoutId: string) => {
   emit('update:layout', layoutId)
@@ -41,6 +55,25 @@ const handleFileChange = (event: Event, type: 'config' | 'logs') => {
   }
   input.value = ''
 }
+
+const focusLangSelect = () => {
+  langSelect.value?.focus()
+}
+
+const triggerConfigUpload = () => {
+  fileInputConfig.value?.click()
+}
+
+const triggerLogUpload = () => {
+  fileInputLogs.value?.click()
+}
+
+const layoutIcons: Record<string, typeof IconLayoutGrid> = {
+  a: IconLayoutGrid,
+  b: IconLayoutColumns,
+  c: IconLayoutWide,
+  d: IconLayoutSplit
+}
 </script>
 
 <template>
@@ -55,52 +88,73 @@ const handleFileChange = (event: Event, type: 'config' | 'logs') => {
     </div>
     <div class="header-actions">
       <div class="layout-switcher">
-        <div
+        <button
           v-for="preset in props.options"
           :key="preset.id"
-          :class="['layout-pill', { active: layoutMode === preset.id }]"
+          type="button"
+          :class="['icon-btn', 'layout-pill', { active: layoutMode === preset.id }]"
+          :title="preset.hint"
           @click="handleLayoutChange(preset.id)"
         >
-          {{ preset.label }}
-        </div>
+          <component :is="layoutIcons[preset.id]" class="icon" aria-hidden="true" />
+        </button>
       </div>
-      <div class="lang-switch">
-        <label>{{ t('lang.label') }}</label>
-        <select :value="currentLocale" @change="handleLocaleChange(($event.target as HTMLSelectElement).value)">
-          <option v-for="lang in languages" :key="lang.id" :value="lang.id">
-            {{ lang.label }}
-          </option>
-        </select>
-      </div>
+      <div style="margin-left: auto;" > </div>
+      <button class="icon-btn ghost" type="button" :title="t('lang.label')" @click="focusLangSelect">
+        <IconTranslate class="icon" aria-hidden="true" />
+      </button>
+      <select
+        ref="langSelect"
+        class="lang-select"
+        :value="currentLocale"
+        @change="handleLocaleChange(($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="lang in languages" :key="lang.id" :value="lang.id">
+          {{ lang.label }}
+        </option>
+      </select>
       <div class="data-ops">
-        <div class="ops-group">
-          <span class="ops-label">{{ t('data.configTitle') }}</span>
-          <button class="btn btn-compact" type="button" @click="emit('export-config')">
-            {{ t('data.exportConfig') }}
+        <div class="ops-group" aria-label="Config operations">
+          <IconCog class="icon muted" aria-hidden="true" />
+          <button class="icon-btn ghost" type="button" :title="t('data.exportConfig')" @click="emit('export-config')">
+            <IconDownload class="icon" aria-hidden="true" />
           </button>
-          <label class="btn btn-compact file-input-btn">
-            {{ t('data.importConfig') }}
-            <input type="file" accept="application/json" @change="handleFileChange($event, 'config')" />
-          </label>
+          <button class="icon-btn ghost" type="button" :title="t('data.importConfig')" @click="triggerConfigUpload">
+            <IconUpload class="icon" aria-hidden="true" />
+          </button>
+          <input
+            ref="fileInputConfig"
+            type="file"
+            class="sr-only"
+            accept="application/json"
+            @change="handleFileChange($event, 'config')"
+          />
         </div>
-        <div class="ops-group">
-          <span class="ops-label">{{ t('data.logTitle') }}</span>
-          <button class="btn btn-compact" type="button" @click="emit('export-logs')">
-            {{ t('data.exportLogs') }}
+        <div class="ops-group" aria-label="Log operations">
+          <IconHistory class="icon muted" aria-hidden="true" />
+          <button class="icon-btn ghost" type="button" :title="t('data.exportLogs')" @click="emit('export-logs')">
+            <IconDownload class="icon" aria-hidden="true" />
           </button>
-          <label class="btn btn-compact file-input-btn">
-            {{ t('data.importLogs') }}
-            <input type="file" accept="application/json" @change="handleFileChange($event, 'logs')" />
-          </label>
+          <button class="icon-btn ghost" type="button" :title="t('data.importLogs')" @click="triggerLogUpload">
+            <IconUpload class="icon" aria-hidden="true" />
+          </button>
+          <input
+            ref="fileInputLogs"
+            type="file"
+            class="sr-only"
+            accept="application/json"
+            @change="handleFileChange($event, 'logs')"
+          />
         </div>
       </div>
       <a
-        class="btn repo-link"
+        class="icon-btn ghost"
         href="https://github.com/ccwq/http-ping-matrix"
         target="_blank"
         rel="noreferrer noopener"
+        :title="t('app.viewOnGithub')"
       >
-        {{ t('app.viewOnGithub') }}
+        <IconGithub class="icon" aria-hidden="true" />
       </a>
     </div>
     <!-- <p class="layout-hint">{{ props.options.find((p) => p.id === layoutMode)?.hint }}</p> -->
@@ -155,91 +209,32 @@ const handleFileChange = (event: Event, type: 'config' | 'logs') => {
 .header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: space-between;
-  --header-control-height: 32px;
+  --header-control-height: 36px;
 }
 
-.repo-link {
-  font-size: 0.75rem;
-}
-
-.lang-switch {
-  display: flex;
-  margin-left: auto;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-}
-
-.lang-switch select {
-  background: #05070d;
-  color: var(--color-accent);
+.lang-select {
+  background: transparent;
   border: 1px solid var(--color-border);
-  font-family: inherit;
+  color: var(--color-accent);
+  min-height: var(--header-control-height);
   padding: 0 0.5rem;
-  min-height: var(--header-control-height);
-  display: inline-flex;
-  align-items: center;
-}
-
-.layout-hint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-
-.header-actions .btn {
-  min-height: var(--header-control-height);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  padding: 0 0.75rem;
 }
 
 .data-ops {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.3rem;
   align-items: center;
-  justify-content: flex-end;
-  min-width: 0;
 }
 
 .ops-group {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.ops-label {
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  color: var(--color-muted);
-  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
-  min-height: var(--header-control-height);
-}
-
-.btn-compact {
-  font-size: 0.65rem;
-  padding: 0 0.6rem;
-}
-
-.file-input-btn {
-  position: relative;
-  overflow: hidden;
-}
-
-.file-input-btn input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+  gap: 0.2rem;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 4px;
 }
 
 @media (max-width: 640px) {
