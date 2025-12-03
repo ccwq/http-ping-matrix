@@ -35,7 +35,14 @@ const formatMs = (value: number) => t('controls.ms', { value })
         {{ t('controls.clear') }}
       </button>
 
-       <label class="sync-row sync-row--at-top">
+      <div class="status-indicator">
+        <span class="status-label">{{ t('controls.status') }}</span>
+        <span :class="['status-chip', { 'status-chip--running': isRunning }]">
+          {{ isRunning ? t('controls.statusRunning') : t('controls.statusStopped') }}
+        </span>
+      </div>
+
+      <label class="sync-row sync-row--at-top">
         <input
           type="checkbox"
           :checked="syncTimers"
@@ -59,6 +66,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
           @input="emit('update:interval', Number(($event.target as HTMLInputElement).value))"
         />
       </label>
+      <p class="helper-text">{{ t('controls.intervalHint') }}</p>
     </fieldset>
 
     <fieldset class="fieldset slider-fieldset">
@@ -102,6 +110,29 @@ const formatMs = (value: number) => t('controls.ms', { value })
   gap: 0.5rem;
 }
 
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+}
+
+.status-chip {
+  border: 1px solid var(--color-border);
+  padding: 0.1rem 0.65rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.status-chip--running {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+}
+
 .slider-fieldset {
   display: flex;
   flex-direction: column;
@@ -128,6 +159,12 @@ const formatMs = (value: number) => t('controls.ms', { value })
 .sync-row--at-top {
   margin-top: -0.25rem;
   display: none;
+}
+
+.helper-text {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--color-muted);
 }
 
 input[type='checkbox'] {

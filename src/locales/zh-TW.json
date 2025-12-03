@@ -13,7 +13,11 @@
     "interval": "輪詢間隔",
     "timeout": "逾時",
     "sync": "[ 將逾時同步到間隔 ]",
-    "ms": "{value}毫秒"
+    "ms": "{value}毫秒",
+    "status": "狀態",
+    "statusRunning": "執行中",
+    "statusStopped": "已停止",
+    "intervalHint": "調整滑桿後會立即影響下一輪輪詢"
   },
   "layout": {
     "matrix": "矩陣堆疊",
@@ -30,7 +34,16 @@
     "title": "延遲 (ms)",
     "points": "資料點：{count}",
     "tooltipTotal": "總計：{value}ms",
-    "tooltipTime": "時間：{value}"
+    "tooltipTime": "時間：{value}",
+    "timeControls": "時間游標",
+    "timeSliderRealtime": "即時視圖：{value}",
+    "timeSliderHistory": "歷史視圖：{value}",
+    "modeRealtime": "即時",
+    "modeHistory": "歷史",
+    "backToRealtime": "[ 回到即時數據 ]",
+    "rangeSliderLabel": "視窗範圍：{value}",
+    "rangeMinutes": "{value} 分鐘",
+    "rangeHours": "{value} 小時"
   },
   "log": {
     "title": "[ 日誌串流 ]",

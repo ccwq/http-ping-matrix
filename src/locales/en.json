@@ -13,7 +13,11 @@
     "interval": "INTERVAL",
     "timeout": "TIMEOUT",
     "sync": "[ SYNC TIMEOUT TO INTERVAL ]",
-    "ms": "{value}ms"
+    "ms": "{value}ms",
+    "status": "STATUS",
+    "statusRunning": "RUNNING",
+    "statusStopped": "STOPPED",
+    "intervalHint": "Applies instantly to the next polling round."
   },
   "layout": {
     "matrix": "Matrix Stack",
@@ -30,7 +34,16 @@
     "title": "Latency (ms)",
     "points": "Points: {count}",
     "tooltipTotal": "TOTAL: {value}ms",
-    "tooltipTime": "TIME: {value}"
+    "tooltipTime": "TIME: {value}",
+    "timeControls": "Time Window",
+    "timeSliderRealtime": "Realtime view: {value}",
+    "timeSliderHistory": "History view: {value}",
+    "modeRealtime": "Realtime",
+    "modeHistory": "History",
+    "backToRealtime": "[ RETURN TO REALTIME ]",
+    "rangeSliderLabel": "Window range: {value}",
+    "rangeMinutes": "{value} min",
+    "rangeHours": "{value} hr"
   },
   "log": {
     "title": "[ LOG STREAM ]",

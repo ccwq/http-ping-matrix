@@ -2,6 +2,8 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { nanoid } from 'nanoid'
 import { useStorage } from '@vueuse/core'
 import { clearInterval as workerClearInterval, setInterval as workerSetInterval } from 'worker-timers'
+import { LOG_PERSISTENCE_CONFIG } from '@/config/logConfig'
+import { loadPersistedLogs, replaceAllLogs } from '@/services/logStorage'
 
 export type LogStatus = 'success' | 'timeout' | 'error'
 
@@ -37,8 +39,7 @@ const DEFAULT_TARGETS: Target[] = [
   { id: 'cloudflare', name: 'cloudflare', url: 'https://www.cloudflare.com/favicon.ico?1764636922572', color: '#ff7b00' }
 ]
 
-// 日志存储限制
-const STORAGE_LOG_LIMIT = 500
+const LOG_LIMIT = LOG_PERSISTENCE_CONFIG.maxEntries
 
 async function ping(url: string, timeout: number) {
   const controller = new AbortController()
@@ -84,24 +85,34 @@ async function ping(url: string, timeout: number) {
 
 export function usePingMatrix() {
   const targets = ref<Target[]>([...DEFAULT_TARGETS])
-  const persistedLog = useStorage<LogEntry[]>('ping-matrix-log', [])
-  if (persistedLog.value.length > STORAGE_LOG_LIMIT) {
-    persistedLog.value = persistedLog.value.slice(0, STORAGE_LOG_LIMIT)
-  }
-  const log = ref<LogEntry[]>([...persistedLog.value])
+  const log = ref<LogEntry[]>([])
   const interval = useStorage<number>('ping-matrix-interval', 800)
   const timeout = ref(800)
   const syncTimers = ref(true)
   const isRunning = ref(false)
   let workerTimerId: number | null = null
 
-  const resetPersistence = () => {
-    persistedLog.value = log.value.slice(0, STORAGE_LOG_LIMIT)
+  const persistLogs = async () => {
+    try {
+      await replaceAllLogs(log.value)
+    } catch (error) {
+      console.error('持久化日志失败', error)
+    }
   }
 
-  const pushLog = (entry: LogEntry) => {
-    log.value.unshift(entry)
-    resetPersistence()
+  const loadLogs = async () => {
+    try {
+      const existing = await loadPersistedLogs()
+      log.value = existing
+    } catch (error) {
+      console.error('加载日志失败', error)
+    }
+  }
+  void loadLogs()
+
+  const pushLog = async (entry: LogEntry) => {
+    log.value = [entry, ...log.value].slice(0, LOG_LIMIT)
+    await persistLogs()
   }
 
   const runTick = async () => {
@@ -142,7 +153,7 @@ export function usePingMatrix() {
         error
       })
     })
-    pushLog({
+    await pushLog({
       id: nanoid(),
       timestamp: tickTimestamp,
       results
@@ -183,9 +194,9 @@ export function usePingMatrix() {
     stopWorkerTimer()
   }
 
-  const clearLog = () => {
+  const clearLog = async () => {
     log.value = []
-    persistedLog.value = []
+    await persistLogs()
   }
 
   watch(

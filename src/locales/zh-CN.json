@@ -13,7 +13,11 @@
     "interval": "轮询间隔",
     "timeout": "超时时间",
     "sync": "[ 同步超时到间隔 ]",
-    "ms": "{value}毫秒"
+    "ms": "{value}毫秒",
+    "status": "状态",
+    "statusRunning": "运行中",
+    "statusStopped": "已停止",
+    "intervalHint": "拖动滑块后立即作用于下一轮探测"
   },
   "layout": {
     "matrix": "矩阵叠层",
@@ -30,7 +34,16 @@
     "title": "延迟 (ms)",
     "points": "数据点：{count}",
     "tooltipTotal": "总计：{value}ms",
-    "tooltipTime": "时间：{value}"
+    "tooltipTime": "时间：{value}",
+    "timeControls": "时间游标",
+    "timeSliderRealtime": "实时视图：{value}",
+    "timeSliderHistory": "历史视图：{value}",
+    "modeRealtime": "实时",
+    "modeHistory": "历史",
+    "backToRealtime": "[ 切回实时数据 ]",
+    "rangeSliderLabel": "窗口范围：{value}",
+    "rangeMinutes": "{value} 分钟",
+    "rangeHours": "{value} 小时"
   },
   "log": {
     "title": "[ 日志流 ]",
