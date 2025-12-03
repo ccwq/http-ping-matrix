@@ -1,0 +1,9 @@
+{
+  "search.exclude": {
+    "dist/**": true,
+    ".history/**": true
+  },
+  "i18n-ally.localesPaths": [
+    "src/locales"
+  ]
+}
