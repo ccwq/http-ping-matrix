@@ -34,8 +34,18 @@ const formatMs = (value: number) => t('controls.ms', { value })
       <button class="btn" @click="emit('clear')">
         {{ t('controls.clear') }}
       </button>
+
+       <label class="sync-row sync-row--at-top">
+        <input
+          type="checkbox"
+          :checked="syncTimers"
+          @change="emit('update:syncTimers', ($event.target as HTMLInputElement).checked)"
+        />
+        <span>{{ t('controls.sync') }}</span>
+      </label>
     </div>
 
+  
     <fieldset class="fieldset slider-fieldset">
       <legend>[ {{ t('controls.interval') }} ]</legend>
       <label class="slider-label">
@@ -65,7 +75,7 @@ const formatMs = (value: number) => t('controls.ms', { value })
           @input="emit('update:timeout', Number(($event.target as HTMLInputElement).value))"
         />
       </label>
-      <label class="sync-row">
+      <label class="sync-row sync-row--in-slider">
         <input
           type="checkbox"
           :checked="syncTimers"
@@ -113,6 +123,11 @@ const formatMs = (value: number) => t('controls.ms', { value })
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.sync-row--at-top {
+  margin-top: -0.25rem;
+  display: none;
 }
 
 input[type='checkbox'] {

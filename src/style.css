@@ -212,7 +212,7 @@ input[type='range']::-moz-range-thumb {
 
 .layout-d {
   grid-template-columns: 670px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) 90px;
+  grid-template-rows: auto minmax(0, 1fr) 110px;
   grid-template-areas:
     'header header'
     'table chart'
@@ -224,12 +224,65 @@ input[type='range']::-moz-range-thumb {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.layout-a .controls-panel .controls-row,
+.layout-d .controls-panel .controls-row {
+  flex: 1 1 100%;
+  gap: 0.4rem;
 }
 
 .layout-a .controls-panel .slider-fieldset,
 .layout-d .controls-panel .slider-fieldset {
-  flex: 1 1 280px;
-  min-width: 260px;
+  flex: 1 1 260px;
+  min-width: 220px;
+  padding: 0.45rem 0.6rem;
+  gap: 0.35rem;
+}
+
+.layout-a .controls-panel .slider-fieldset legend,
+.layout-d .controls-panel .slider-fieldset legend {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0;
+  padding: 0 0.2rem;
+}
+
+.layout-a .controls-panel .slider-label,
+.layout-d .controls-panel .slider-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.layout-a .controls-panel .slider-label span,
+.layout-d .controls-panel .slider-label span {
+  flex-shrink: 0;
+  min-width: 130px;
+  letter-spacing: 0.08em;
+}
+
+.layout-a .controls-panel .slider-label input[type='range'],
+.layout-d .controls-panel .slider-label input[type='range'] {
+  flex: 1;
+}
+
+.layout-a .controls-panel .sync-row,
+.layout-d .controls-panel .sync-row {
+  margin-top: 0;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.layout-a .controls-panel .sync-row--at-top,
+.layout-d .controls-panel .sync-row--at-top {
+  display: flex;
+}
+
+.layout-a .controls-panel .sync-row--in-slider,
+.layout-d .controls-panel .sync-row--in-slider {
+  display: none;
 }
 
 @media (max-width: 900px) {
