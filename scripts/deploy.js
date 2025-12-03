@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
-'use strict'
-
-const { spawnSync } = require('child_process')
-const { readFileSync } = require('fs')
-const { join } = require('node:path')
+import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const pkgPath = join(process.cwd(), 'package.json')
 
@@ -13,7 +11,7 @@ const commands = [
   {
     label: 'npm version patch',
     command: 'npm',
-    args: ['version', 'patch', '-m', 'chore: deploy v%s']
+    args: ['version', 'patch', '--force', '-m', 'chore: deploy v%s']
   },
   { label: 'npx gh-pages', command: 'npx', args: ['gh-pages', '-d', 'dist'] },
   {
