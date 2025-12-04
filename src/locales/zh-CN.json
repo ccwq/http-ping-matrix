@@ -4,7 +4,9 @@
     "statusOnline": "在线",
     "statusIdle": "空闲",
     "system": "系统",
-    "viewOnGithub": "[ 前往 GitHub ]"
+    "viewOnGithub": "[ 前往 GitHub ]",
+    "installPwa": "[ 安装应用 ]",
+    "installPwaHint": "安装至 Chrome，随时一键打开仪表盘。"
   },
   "controls": {
     "start": "[ 开始 ]",

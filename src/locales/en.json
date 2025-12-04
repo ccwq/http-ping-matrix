@@ -4,7 +4,9 @@
     "statusOnline": "ONLINE",
     "statusIdle": "IDLE",
     "system": "SYSTEM",
-    "viewOnGithub": "[ VIEW ON GITHUB ]"
+    "viewOnGithub": "[ VIEW ON GITHUB ]",
+    "installPwa": "[ INSTALL APP ]",
+    "installPwaHint": "Add Ping Matrix to Chrome for faster access."
   },
   "controls": {
     "start": "[ START ]",

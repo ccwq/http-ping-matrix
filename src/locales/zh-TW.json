@@ -4,7 +4,9 @@
     "statusOnline": "在線",
     "statusIdle": "閒置",
     "system": "系統",
-    "viewOnGithub": "[ 前往 GitHub ]"
+    "viewOnGithub": "[ 前往 GitHub ]",
+    "installPwa": "[ 安裝應用 ]",
+    "installPwaHint": "安裝到 Chrome，快速開啟儀表板。"
   },
   "controls": {
     "start": "[ 開始 ]",

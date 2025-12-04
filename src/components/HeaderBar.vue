@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import IconLayoutGrid from '~icons/mdi/view-grid'
 import IconLayoutColumns from '~icons/mdi/view-column'
@@ -11,6 +11,7 @@ import IconUpload from '~icons/mdi/upload'
 import IconGithub from '~icons/mdi/github'
 import IconCog from '~icons/mdi/cog'
 import IconHistory from '~icons/mdi/history'
+import IconDevices from '~icons/mdi/devices'
 
 const props = defineProps<{
   layoutMode: string
@@ -74,6 +75,75 @@ const layoutIcons: Record<string, typeof IconLayoutGrid> = {
   c: IconLayoutWide,
   d: IconLayoutSplit
 }
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
+
+const installPrompt = ref<BeforeInstallPromptEvent | null>(null)
+const canInstall = ref(false)
+const isPromptingInstall = ref(false)
+const isStandalone = ref(false)
+let displayModeMediaQuery: MediaQueryList | null = null
+
+const updateDisplayMode = () => {
+  const standaloneViaMedia = window.matchMedia?.('(display-mode: standalone)').matches
+  const standaloneViaNavigator = (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  isStandalone.value = Boolean(standaloneViaMedia || standaloneViaNavigator)
+}
+
+const handleBeforeInstallPrompt = (event: Event) => {
+  event.preventDefault()
+  installPrompt.value = event as BeforeInstallPromptEvent
+  canInstall.value = true
+}
+
+const handleAppInstalled = () => {
+  installPrompt.value = null
+  canInstall.value = false
+  isPromptingInstall.value = false
+}
+
+const showInstallButton = computed(() => canInstall.value && !isStandalone.value)
+
+const requestInstall = async () => {
+  const prompt = installPrompt.value
+  if (!prompt || isPromptingInstall.value) return
+  isPromptingInstall.value = true
+  try {
+    await prompt.prompt()
+    await prompt.userChoice
+  } catch (error) {
+    console.error('[ping-matrix] install prompt failed', error)
+  } finally {
+    installPrompt.value = null
+    canInstall.value = false
+    isPromptingInstall.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.addEventListener('appinstalled', handleAppInstalled)
+  updateDisplayMode()
+  displayModeMediaQuery = window.matchMedia('(display-mode: standalone)')
+  if (displayModeMediaQuery.addEventListener) {
+    displayModeMediaQuery.addEventListener('change', updateDisplayMode)
+  } else if (displayModeMediaQuery.addListener) {
+    displayModeMediaQuery.addListener(updateDisplayMode)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.removeEventListener('appinstalled', handleAppInstalled)
+  if (displayModeMediaQuery?.removeEventListener) {
+    displayModeMediaQuery.removeEventListener('change', updateDisplayMode)
+  } else if (displayModeMediaQuery?.removeListener) {
+    displayModeMediaQuery.removeListener(updateDisplayMode)
+  }
+})
 </script>
 
 <template>
@@ -100,7 +170,18 @@ const layoutIcons: Record<string, typeof IconLayoutGrid> = {
           <component :is="layoutIcons[preset.id]" class="icon" aria-hidden="true" />
         </button>
       </div>
-      <div style="margin-left: auto;" > </div>
+      <button
+        v-if="showInstallButton"
+        class="install-btn"
+        type="button"
+        :disabled="isPromptingInstall"
+        :title="t('app.installPwaHint')"
+        @click="requestInstall"
+      >
+        <IconDevices class="icon" aria-hidden="true" />
+        <span>{{ t('app.installPwa') }}</span>
+      </button>
+      <div class="header-spacer" aria-hidden="true"></div>
       <button class="icon-btn ghost" type="button" :title="t('lang.label')" @click="focusLangSelect">
         <IconTranslate class="icon" aria-hidden="true" />
       </button>
@@ -228,6 +309,28 @@ const layoutIcons: Record<string, typeof IconLayoutGrid> = {
   gap: 0.5rem;
   align-items: center;
   --header-control-height: 36px;
+}
+
+.install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(15, 18, 32, 0.6);
+  color: var(--color-accent);
+  padding: 0 0.75rem;
+  min-height: var(--header-control-height);
+  transition: opacity 0.2s ease;
+}
+
+.install-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.header-spacer {
+  flex: 1 1 auto;
 }
 
 .lang-select {

@@ -22,11 +22,13 @@ A retro-style HTTP monitoring matrix dashboard built with Vite + Vue 3 + TypeScr
     - [Visualization \& Logs](#visualization--logs)
     - [Persistence \& Collaboration](#persistence--collaboration)
     - [Localization \& UX](#localization--ux)
+    - [Installability \& Offline](#installability--offline)
   - [Architecture \& Folder Map](#architecture--folder-map)
   - [Getting Started](#getting-started)
     - [Requirements](#requirements)
     - [Install \& Run](#install--run)
   - [Usage Guide](#usage-guide)
+  - [Install as Chrome App](#install-as-chrome-app)
   - [Persistence \& Data Portability](#persistence--data-portability)
     - [Export / Import Config](#export--import-config)
     - [Export / Import Logs](#export--import-logs)
@@ -65,6 +67,10 @@ Ping Matrix is a single-page dashboard that keeps the control flow, visualizatio
 ### Localization & UX
 - 🌐 **Trilingual Interface**：Automatically reads saved language from `localStorage` by default, with built-in `en` / `zh-CN` / `zh-TW`.
 - 🧩 **Matrix-style UI**：Dark background with bright borders, paired with monospace/pixel fonts and retro buttons, sliders.
+
+### Installability & Offline
+- 📲 **Installable PWA**：Manifest + Service Worker allow Chrome to show the install button and remember the app as a standalone window.
+- 🚀 **Auto-updating Service Worker**：`vite-plugin-pwa` handles the asset cache and `beforeinstallprompt` UX so users always get the latest build without cache busting chores.
 
 ## Architecture & Folder Map
 
@@ -108,6 +114,14 @@ npm run preview    # Preview dist/ with local server
 4. **Export / Import**：Config / Logs groups in Header handle JSON import/export respectively (see below).
 5. **Log panel**：Hover over cells to view error details, header shows total entry count.
 6. **Chart panel**：In realtime mode, press "Back to Realtime" to resume auto-scrolling.
+
+## Install as Chrome App
+1. Open https://ccwq.github.io/http-ping-matrix/ in Chrome (or the hosted URL you deploy).
+2. Interact with the page at least once (Chrome requires a click/tap and ~30 seconds dwell time).
+3. Use either of the following:
+   - Click the **Install App** pill in the header (shown once the browser fires `beforeinstallprompt`).
+   - Or use Chrome's omnibox icon / menu (`⋮ > Install Ping Matrix…`).
+4. After installation the dashboard opens in its own window; the header hides the button automatically.
 
 ## Persistence & Data Portability
 
@@ -167,6 +181,8 @@ The `deploy` script automatically:
 4. Pushes `master` branch with tags.
 
 > Ensure the demo site has consistent configuration for the new base (`/http-ping-matrix/`) before deployment.
+
+After deployment, visit the hosted URL and run Lighthouse (PWA preset) to ensure all installability checks are green and that `manifest.webmanifest` / `sw.js` are accessible from the published origin.
 
 ## Troubleshooting & FAQ
 - **CORS/opaque response**：The app only needs to send `no-cors` requests to measure latency. If a target is completely inaccessible, it will show `ERR/Timeout`.
