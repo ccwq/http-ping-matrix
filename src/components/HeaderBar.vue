@@ -79,7 +79,8 @@ const layoutIcons: Record<string, typeof IconLayoutGrid> = {
 <template>
   <header class="panel grid-area-header header-bar">
     <div class="header-info">
-      <div>
+      <div class="header-brand">
+        <img class="app-logo" src="/icon.png" alt="Ping Matrix logo" width="40" height="40" loading="lazy" />
         <p class="geek-title">
           {{ t('app.title', { version: appVersion }) }}
         </p>
@@ -176,6 +177,21 @@ const layoutIcons: Record<string, typeof IconLayoutGrid> = {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+  object-fit: cover;
 }
 
 .status-line {
