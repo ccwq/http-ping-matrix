@@ -2,17 +2,22 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseEChart from '@/components/BaseEChart.vue'
-import type { LogEntry, Target } from '@/composables/usePingMatrix'
+import type { LogEntry, SessionWindow, Target } from '@/composables/usePingMatrix'
 import type { EChartsOption } from 'echarts'
 import { LOG_RETENTION_MS } from '@/config/logConfig'
 
 const props = defineProps<{
   log: LogEntry[]
+  windowedLog: LogEntry[]
   targets: Target[]
+  sessionWindow: SessionWindow
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:session-window', value: SessionWindow): void
 }>()
 
 const FIXED_WINDOW_MS = 5 * 60 * 1000
-const WINDOW_PADDING_MS = 3 * 1000
 const CLOCK_INTERVAL_MS = 1000
 const MAX_POINTS_PER_SERIES = 600
 const REALTIME_EPSILON_MS = 1000
@@ -20,13 +25,15 @@ const TIME_SLIDER_STEP_MS = 1000
 const RANGE_MIN_MS = 60 * 1000
 const RANGE_STEP_MS = 60 * 1000
 const CHART_PADDING_MIN_MS = 30 * 1000
+const DEGRADE_POLICY =
+  (import.meta.env.VITE_CHART_DEGRADE_POLICY as 'sampling' | 'truncate' | undefined) ?? 'sampling'
 const { t, locale } = useI18n()
 
 const chartClock = ref(Date.now())
-const rangeWindowMs = ref(FIXED_WINDOW_MS)
-const isRealtime = ref(true)
-const selectedTimestamp = ref(Date.now())
 let clockTimer: number | null = null
+const seriesVersion = ref(0)
+const cachedWindowIds = ref<string[]>([])
+const seriesCache = new Map<string, [number, number][]>()
 
 // 使用内部时钟让时间轴稳定推进，避免依赖真实数据刷新频率
 const tickClock = () => {
@@ -42,6 +49,20 @@ onBeforeUnmount(() => {
     window.clearInterval(clockTimer)
     clockTimer = null
   }
+})
+
+const updateSessionWindow = (patch: Partial<SessionWindow>) => {
+  emit('update:session-window', {
+    ...props.sessionWindow,
+    ...patch
+  })
+}
+
+const isRealtime = computed(() => props.sessionWindow.mode === 'realtime')
+const rangeWindowMs = computed(() => Math.max(RANGE_MIN_MS, props.sessionWindow.spanMs))
+const selectedTimestamp = computed(() => {
+  if (isRealtime.value) return timelineBounds.value.max
+  return props.sessionWindow.anchorTime ?? timelineBounds.value.max
 })
 
 const timelineBounds = computed(() => {
@@ -69,11 +90,9 @@ const rangeSliderMax = computed(() => {
 watch(
   rangeSliderMax,
   (max) => {
-    if (rangeWindowMs.value > max) {
-      rangeWindowMs.value = max
-    }
-    if (rangeWindowMs.value < RANGE_MIN_MS) {
-      rangeWindowMs.value = RANGE_MIN_MS
+    const clamped = Math.min(Math.max(rangeWindowMs.value, RANGE_MIN_MS), max)
+    if (clamped !== props.sessionWindow.spanMs) {
+      updateSessionWindow({ spanMs: clamped })
     }
   },
   { immediate: true }
@@ -83,14 +102,15 @@ watch(
   timelineBounds,
   ({ min, max }) => {
     if (isRealtime.value) {
-      selectedTimestamp.value = max
+      if (props.sessionWindow.anchorTime !== null) {
+        updateSessionWindow({ anchorTime: null })
+      }
       return
     }
-    if (selectedTimestamp.value > max) {
-      selectedTimestamp.value = max
-    }
-    if (selectedTimestamp.value < min) {
-      selectedTimestamp.value = min
+    const currentAnchor = props.sessionWindow.anchorTime ?? max
+    const clamped = Math.min(Math.max(currentAnchor, min), max)
+    if (clamped !== props.sessionWindow.anchorTime) {
+      updateSessionWindow({ anchorTime: clamped })
     }
   },
   { immediate: true }
@@ -140,47 +160,96 @@ const handleTimeSliderInput = (event: Event) => {
   const value = Number((event.target as HTMLInputElement).value)
   const nearRealtime = Math.abs(value - timelineBounds.value.max) <= REALTIME_EPSILON_MS
   if (nearRealtime) {
-    isRealtime.value = true
-    selectedTimestamp.value = timelineBounds.value.max
+    updateSessionWindow({ mode: 'realtime', anchorTime: null })
     return
   }
-  isRealtime.value = false
-  selectedTimestamp.value = value
+  updateSessionWindow({ mode: 'history', anchorTime: value })
 }
 
 const resumeRealtime = () => {
-  isRealtime.value = true
-  selectedTimestamp.value = timelineBounds.value.max
+  updateSessionWindow({ mode: 'realtime', anchorTime: null })
 }
 
 const handleRangeChange = (event: Event) => {
   const value = Number((event.target as HTMLInputElement).value)
   const clamped = Math.min(Math.max(value, RANGE_MIN_MS), rangeSliderMax.value)
-  rangeWindowMs.value = clamped
+  updateSessionWindow({ spanMs: clamped })
 }
 
-const groupedSeries = computed(() => {
-  const groups: Record<string, [number, number][]> = {}
+const resetSeriesCache = () => {
+  seriesCache.clear()
   props.targets.forEach((target) => {
-    groups[target.name] = []
+    seriesCache.set(target.name, [])
   })
+}
 
-  const minTime = windowRange.value.start - WINDOW_PADDING_MS
-  for (const entry of props.log) {
-    if (entry.timestamp < minTime) continue
-    entry.results.forEach((result) => {
-      const bucket = groups[result.targetName] ?? (groups[result.targetName] = [])
-      bucket.push([entry.timestamp, result.duration])
-    })
+const degradeSeries = (entries: [number, number][], budget: number) => {
+  if (entries.length <= budget) return entries
+  if (DEGRADE_POLICY === 'truncate') {
+    return entries.slice(entries.length - budget)
   }
-  Object.entries(groups).forEach(([name, entries]) => {
-    const normalized = entries
-      .filter(([timestamp]) => timestamp >= minTime)
-      .sort((a, b) => a[0] - b[0])
-    if (normalized.length > MAX_POINTS_PER_SERIES) {
-      normalized.splice(0, normalized.length - MAX_POINTS_PER_SERIES)
+  if (budget <= 2) {
+    return entries.slice(entries.length - budget)
+  }
+  const sampled: [number, number][] = []
+  const step = (entries.length - 1) / (budget - 1)
+  const lastPoint = entries[entries.length - 1]
+  if (!lastPoint) return entries
+  for (let i = 0; i < budget; i += 1) {
+    const index = Math.round(i * step)
+    sampled.push(entries[index] ?? lastPoint)
+  }
+  return sampled
+}
+
+watch(
+  [() => props.windowedLog, () => props.targets],
+  ([windowedLog]) => {
+    const currentIds = windowedLog.map((entry) => entry.id)
+    const previousIds = cachedWindowIds.value
+    const canIncrementalAppend =
+      previousIds.length > 0 &&
+      currentIds.length >= previousIds.length &&
+      previousIds.every((id, index) => currentIds[index + (currentIds.length - previousIds.length)] === id)
+
+    if (!canIncrementalAppend) {
+      resetSeriesCache()
+      for (let i = windowedLog.length - 1; i >= 0; i -= 1) {
+        const entry = windowedLog[i]
+        if (!entry) continue
+        entry.results.forEach((result) => {
+          const bucket = seriesCache.get(result.targetName) ?? []
+          bucket.push([entry.timestamp, result.duration])
+          seriesCache.set(result.targetName, bucket)
+        })
+      }
+    } else {
+      const deltaCount = currentIds.length - previousIds.length
+      const deltaEntries = windowedLog.slice(0, deltaCount)
+      for (let i = deltaEntries.length - 1; i >= 0; i -= 1) {
+        const entry = deltaEntries[i]
+        if (!entry) continue
+        entry.results.forEach((result) => {
+          const bucket = seriesCache.get(result.targetName) ?? []
+          bucket.push([entry.timestamp, result.duration])
+          seriesCache.set(result.targetName, bucket)
+        })
+      }
     }
-    groups[name] = normalized
+
+    cachedWindowIds.value = currentIds
+    seriesVersion.value += 1
+  },
+  { immediate: true }
+)
+
+const groupedSeries = computed(() => {
+  void seriesVersion.value
+  const groups: Record<string, [number, number][]> = {}
+  const budget = Math.max(10, Math.min(props.sessionWindow.budget || MAX_POINTS_PER_SERIES, MAX_POINTS_PER_SERIES))
+  props.targets.forEach((target) => {
+    const bucket = seriesCache.get(target.name) ?? []
+    groups[target.name] = degradeSeries(bucket, budget)
   })
   return groups
 })

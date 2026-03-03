@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import LogFileIcon from '~icons/mdi/file'
 
 const props = defineProps<{
-  log: LogEntry[]
+  log: LogEntry[] // 这里现在接收的是 windowedLog
   targets: Target[]
 }>()
 
@@ -24,16 +24,25 @@ const totalFormatter = computed(() => new Intl.NumberFormat(locale.value))
 const totalCount = computed(() => props.log.length)
 const formattedTotal = computed(() => totalFormatter.value.format(totalCount.value))
 
-const source = computed<LogRowWithCache[]>(() =>
-  props.log.map((entry) => ({
-    ...entry,
-    // 预先缓存站点 -> 结果的映射，避免模板内重复查找
-    resultMap: entry.results.reduce((acc, item) => {
-      acc[item.targetId] = item
-      return acc
-    }, {} as Record<string, TargetLogEntry>)
-  }))
-)
+// 增量缓存结果映射，避免每 tick 全量 map
+const resultMapCache = new Map<string, Record<string, TargetLogEntry>>()
+
+const source = computed<LogRowWithCache[]>(() => {
+  return props.log.map((entry) => {
+    let resultMap = resultMapCache.get(entry.id)
+    if (!resultMap) {
+      resultMap = entry.results.reduce((acc, item) => {
+        acc[item.targetId] = item
+        return acc
+      }, {} as Record<string, TargetLogEntry>)
+      resultMapCache.set(entry.id, resultMap)
+    }
+    return {
+      ...entry,
+      resultMap
+    }
+  })
+})
 const { list, containerProps, wrapperProps } = useVirtualList(source, {
   itemHeight: 36,
   overscan: 6

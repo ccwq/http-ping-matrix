@@ -13,7 +13,7 @@ import { buildLogExportFile, parseLogExportFile } from '@/services/logTransfer'
 
 type LayoutMode = 'a' | 'b' | 'c' | 'd'
 
-const { targets, log, interval, timeout, syncTimers, isRunning, start, stop, clearLog } = usePingMatrix()
+const { targets, log, windowedLog, sessionWindow, interval, timeout, syncTimers, isRunning, start, stop, clearLog } = usePingMatrix()
 
 const layoutMode = useStorage<LayoutMode>('ping-matrix-layout', 'b')
 const layoutDefs = [
@@ -89,6 +89,10 @@ const handleLayoutChange = (mode: string) => {
 const handleLocaleChange = (value: string) => {
   locale.value = value
   localStorage.setItem('ping-matrix-locale', value)
+}
+
+const handleSessionWindowChange = (value: typeof sessionWindow.value) => {
+  sessionWindow.value = value
 }
 
 const applyConfigData = (config: AppConfigData) => {
@@ -198,7 +202,13 @@ onMounted(() => {
       @update:sync-timers="handleSyncChange"
     />
 
-    <LatencyChart :log="log" :targets="targets" />
-    <LogTable :log="log" :targets="targets" />
+    <LatencyChart
+      :log="log"
+      :windowed-log="windowedLog"
+      :targets="targets"
+      :session-window="sessionWindow"
+      @update:session-window="handleSessionWindowChange"
+    />
+    <LogTable :log="windowedLog" :targets="targets" />
   </main>
 </template>

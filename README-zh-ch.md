@@ -44,7 +44,7 @@ Ping Matrix 是一个单页仪表板，保持控制流、可视化和日志的�
 1. `usePingMatrix` 负责维护目标站点、定时器、日志和本地偏好（间隔/超时/同步规则）。
 2. `HeaderBar` 同时处理布局切换、语言选择、配置&日志导入导出等操作。
 3. `LatencyChart` 在一个固定窗口内渲染实时/历史曲线，并允许拖动时间轴或范围。
-4. `LogTable` 使用 `useVirtualList` 虚拟滚动表格，即使数千条记录也能保持流畅。
+4. `LogTable` 与 `LatencyChart` 共享同一会话窗口（实时/历史 + 锚点 + 窗口跨度 + 预算），保证图表和日志表时间范围一致且渲染有界。
 
 ## 功能亮点
 
@@ -55,8 +55,9 @@ Ping Matrix 是一个单页仪表板，保持控制流、可视化和日志的�
 
 ### 可视化与日志
 - 📈 **多布局 ECharts 面板**：4 组布局在桌面/移动端都能保持网格排布。
-- 🧮 **实时/历史窗口**：时间轴可在“实时”与历史任意点位切换，范围滑块可放大 1–60 分钟窗口。
+- 🧮 **共享会话窗口**：时间轴可在“实时”与历史任意点位切换，图表与日志表共用 1–60 分钟窗口。
 - 📜 **虚拟列表日志**：色彩标签标示 success/warn/error/timeout，tooltip 暴露错误信息。
+- ⚖️ **点位预算与降级策略**：图表在窗口内对每条序列执行点位预算，超预算按采样/截断规则稳定降级。
 
 ### 持久化与协作
 - 🔐 **偏好存储**：间隔、超时、同步开关、布局模式、语言选择均通过 `useStorage` 持久化。
@@ -87,7 +88,7 @@ src/
 关键交互自上而下保持“单一数据源”：
 - `usePingMatrix` → 统一触发 `start/stop/clear`、执行 `ping()`、写入日志并同步到 IndexedDB。
 - `HeaderBar` → 通过 `configTransfer` / `logTransfer` 对应的 JSON schema 进行数据交换。
-- `LogTable` / `LatencyChart` → 只消费 `log` 和 `targets`，完全无副作用，方便未来复用。
+- `LogTable` / `LatencyChart` → 统一消费 `usePingMatrix` 提供的窗口化数据，避免每个 tick 对全量历史重复派生。
 
 ## 快速开始
 
@@ -126,7 +127,7 @@ npm run preview    # 用本地服务器预览 dist/
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
 | 偏好设置 | `localStorage` (`ping-matrix-*`) | 自定义间隔/布局/语言，浏览器重启时自动加载。 |
-| 日志 | IndexedDB (`http-ping-logs`) | 保留 3 天数据，过期记录在写入/读取时清理。 |
+| 日志 | IndexedDB (`http-ping-logs`) | 保留 3 天数据，采用增量写入 + 低频保留清理，避免阻塞热路径渲染。 |
 | 配置导出 | `services/configTransfer.ts` | `type=http-ping-config`，跨设备导入以保持一致行为。 |
 | 日志导出 | `services/logTransfer.ts` | `type=http-ping-logs`，包含保留信息并按时间倒序排列。 |
 
@@ -154,6 +155,11 @@ const DEFAULT_TARGETS = [
 ### 调整日志保留或导出 schema
 - 在 `src/config/logConfig.ts` 中修改 `retentionDays`，其他服务会自动读取毫秒值。
 - 若修改导入导出字段，请同步更新 `configTransfer` / `logTransfer` 中的验证逻辑。
+
+### 会话窗口与性能调优
+- 会话窗口状态由 `usePingMatrix` 统一维护（`mode`、`anchorTime`、`spanMs`、`budget`），图表与日志表共享同一窗口边界。
+- 图表降级策略可通过 `VITE_CHART_DEGRADE_POLICY=sampling|truncate` 配置（默认 `sampling`）。
+- 长时压测可在浏览器 DevTools Console 粘贴 `scripts/perf-session-long-run.js`，运行 20-40 分钟后执行 `__PING_PERF_SESSION__.stop()` 获取指标。
 
 ### 更新多语言
 编辑 `src/locales/*.json`，添加新的 key 后即可在组件中通过 `t('key')` 使用。

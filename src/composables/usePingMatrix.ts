@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import { useStorage } from '@vueuse/core'
 import { clearInterval as workerClearInterval, setInterval as workerSetInterval } from 'worker-timers'
 import { LOG_RETENTION_MS } from '@/config/logConfig'
-import { loadPersistedLogs, replaceAllLogs } from '@/services/logStorage'
+import { appendLogEntry, loadPersistedLogs, prunePersistedLogs, replaceAllLogs } from '@/services/logStorage'
 
 export type LogStatus = 'success' | 'timeout' | 'error'
 
@@ -27,6 +27,13 @@ export interface LogEntry {
   id: string
   timestamp: number
   results: TargetLogEntry[]
+}
+
+export interface SessionWindow {
+  mode: 'realtime' | 'history'
+  anchorTime: number | null
+  spanMs: number
+  budget: number
 }
 
 const DEFAULT_TARGETS: Target[] = [
@@ -90,12 +97,39 @@ export function usePingMatrix() {
   const isRunning = ref(false)
   let workerTimerId: number | null = null
 
-  const persistLogs = async () => {
-    try {
-      await replaceAllLogs(log.value)
-    } catch (error) {
-      console.error('持久化日志失败', error)
-    }
+  const sessionWindow = useStorage<SessionWindow>('ping-matrix-session-window', {
+    mode: 'realtime',
+    anchorTime: null,
+    spanMs: 5 * 60 * 1000, // 默认 5 分钟
+    budget: 1000 // 默认 1000 个点
+  })
+
+  const RETENTION_CLEANUP_INTERVAL_MS = 5 * 60 * 1000
+  let lastRetentionCleanupAt = 0
+
+  const windowedLog = computed(() => {
+    const { mode, anchorTime, spanMs } = sessionWindow.value
+    const data = log.value
+    if (!data.length) return []
+
+    const latestTimestamp = data[0]?.timestamp ?? Date.now()
+    const oldestTimestamp = data[data.length - 1]?.timestamp ?? latestTimestamp
+    const requestedEnd = mode === 'realtime' ? latestTimestamp : (anchorTime ?? latestTimestamp)
+    const end = Math.min(Math.max(requestedEnd, oldestTimestamp), latestTimestamp)
+    const start = end - spanMs
+
+    // 由于 log 是按时间倒序排列的（最新的在前）
+    // 基础过滤实现，后续可根据性能需求优化为二分查找 + slice
+    return data.filter((entry) => entry.timestamp >= start && entry.timestamp <= end)
+  })
+
+  const maybeScheduleRetentionCleanup = () => {
+    const now = Date.now()
+    if (now - lastRetentionCleanupAt < RETENTION_CLEANUP_INTERVAL_MS) return
+    lastRetentionCleanupAt = now
+    void prunePersistedLogs(now).catch((error: unknown) => {
+      console.error('日志保留清理失败', error)
+    })
   }
 
   const pruneLogs = () => {
@@ -108,6 +142,7 @@ export function usePingMatrix() {
       const existing = await loadPersistedLogs()
       log.value = existing
       pruneLogs()
+      maybeScheduleRetentionCleanup()
     } catch (error) {
       console.error('加载日志失败', error)
     }
@@ -117,7 +152,10 @@ export function usePingMatrix() {
   const pushLog = async (entry: LogEntry) => {
     log.value = [entry, ...log.value]
     pruneLogs()
-    await persistLogs()
+    void appendLogEntry(entry).catch((error: unknown) => {
+      console.error('日志增量写入失败', error)
+    })
+    maybeScheduleRetentionCleanup()
   }
 
   const runTick = async () => {
@@ -201,7 +239,8 @@ export function usePingMatrix() {
 
   const clearLog = async () => {
     log.value = []
-    await persistLogs()
+    sessionWindow.value.anchorTime = null
+    await replaceAllLogs([])
   }
 
   watch(
@@ -232,6 +271,8 @@ export function usePingMatrix() {
   return {
     targets,
     log,
+    windowedLog,
+    sessionWindow,
     interval,
     timeout,
     syncTimers,

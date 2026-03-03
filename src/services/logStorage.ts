@@ -43,8 +43,10 @@ const applyRetention = (logs: LogEntry[], now = Date.now()) => {
   return logs.filter((entry) => entry.timestamp >= cutoff)
 }
 
-export const replaceAllLogs = async (logs: LogEntry[]) => {
-  const retained = applyRetention(sanitizeLogs(logs))
+const runReadWrite = async (
+  executor: (store: IDBObjectStore, fail: (reason: unknown) => void) => void,
+  errorMessage: string
+) => {
   const db = await openDatabase()
   await new Promise<void>((resolve, reject) => {
     let settled = false
@@ -55,23 +57,73 @@ export const replaceAllLogs = async (logs: LogEntry[]) => {
     }
     const transaction = db.transaction(storeName, 'readwrite')
     transaction.onerror = () => {
-      fail(transaction.error ?? new Error('日志写入失败'))
+      fail(transaction.error ?? new Error(errorMessage))
     }
     transaction.oncomplete = () => {
       if (settled) return
       settled = true
       resolve()
     }
-    const store = transaction.objectStore(storeName)
+    try {
+      executor(transaction.objectStore(storeName), fail)
+    } catch (error) {
+      fail(error)
+    }
+  })
+}
+
+export const replaceAllLogs = async (logs: LogEntry[]) => {
+  const retained = applyRetention(sanitizeLogs(logs))
+  await runReadWrite((store, fail) => {
     const clearRequest = store.clear()
-    clearRequest.onerror = () => fail(clearRequest.error ?? new Error('清空旧日志失败'))
+    clearRequest.onerror = () => {
+      fail(clearRequest.error ?? new Error('清空旧日志失败'))
+    }
     clearRequest.onsuccess = () => {
       retained.forEach((entry) => {
         const writeRequest = store.put(entry)
-        writeRequest.onerror = () => fail(writeRequest.error ?? new Error('写入日志失败'))
+        writeRequest.onerror = () => {
+          fail(writeRequest.error ?? new Error('写入日志失败'))
+        }
       })
     }
-  })
+  }, '日志写入失败')
+}
+
+export const appendLogEntry = async (entry: LogEntry) => {
+  const now = Date.now()
+  const cutoff = now - LOG_RETENTION_MS
+  const sanitized = cloneLogEntry(entry)
+  if (sanitized.timestamp < cutoff) {
+    return
+  }
+  await runReadWrite((store, fail) => {
+    const writeRequest = store.put(sanitized)
+    writeRequest.onerror = () => {
+      fail(writeRequest.error ?? new Error('写入日志失败'))
+    }
+  }, '日志写入失败')
+}
+
+export const prunePersistedLogs = async (now = Date.now()) => {
+  const cutoff = now - LOG_RETENTION_MS
+  await runReadWrite((store, fail) => {
+    const readRequest = store.getAll()
+    readRequest.onerror = () => {
+      fail(readRequest.error ?? new Error('读取日志失败'))
+    }
+    readRequest.onsuccess = () => {
+      const rows = (readRequest.result as LogEntry[]) ?? []
+      rows.forEach((entry) => {
+        if (entry.timestamp < cutoff) {
+          const deleteRequest = store.delete(entry.id)
+          deleteRequest.onerror = () => {
+            fail(deleteRequest.error ?? new Error('清理过期日志失败'))
+          }
+        }
+      })
+    }
+  }, '日志清理失败')
 }
 
 export const loadPersistedLogs = async (): Promise<LogEntry[]> => {
@@ -87,7 +139,9 @@ export const loadPersistedLogs = async (): Promise<LogEntry[]> => {
   const normalized = logs.sort((a, b) => b.timestamp - a.timestamp)
   const retained = applyRetention(normalized)
   if (retained.length !== normalized.length) {
-    await replaceAllLogs(retained)
+    void prunePersistedLogs().catch((error) => {
+      console.error('清理过期日志失败', error)
+    })
   }
   return retained
 }

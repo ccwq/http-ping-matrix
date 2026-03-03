@@ -46,7 +46,7 @@ Ping Matrix is a single-page dashboard that keeps the control flow, visualizatio
 1. `usePingMatrix` manages target sites, timers, logs, and local preferences (interval/timeout/sync rules).
 2. `HeaderBar` handles layout switching, language selection, and config/log import/export operations.
 3. `LatencyChart` renders real-time/historical curves within a fixed window, allowing timeline dragging or range selection.
-4. `LogTable` uses `useVirtualList` for virtual scrolling, maintaining smooth performance even with thousands of records.
+4. `LogTable` and `LatencyChart` now share the same session window (`realtime/history + anchor + span + budget`) to keep rendering bounded and aligned.
 
 ## Feature Highlights
 
@@ -57,8 +57,9 @@ Ping Matrix is a single-page dashboard that keeps the control flow, visualizatio
 
 ### Visualization & Logs
 - 📈 **Multi-layout ECharts Panel**：4 layouts maintain grid arrangement on both desktop and mobile.
-- 🧮 **Real-time/Historical Window**：Timeline can switch between "realtime" and any historical point, with range slider to zoom 1–60 minute windows.
+- 🧮 **Shared Session Window**：Timeline can switch between "realtime" and any historical point, with range slider to zoom 1–60 minute windows for both chart and log table.
 - 📜 **Virtual List Logs**：Color-coded labels for success/warn/error/timeout, with error details in tooltips.
+- ⚖️ **Point Budget & Degrade Policy**：Chart series enforce per-series budgets inside window and degrade deterministically (sampling/truncation policy).
 
 ### Persistence & Collaboration
 - 🔐 **Preference Storage**：Interval, timeout, sync toggle, layout mode, and language selection are all persisted via `useStorage`.
@@ -89,7 +90,7 @@ src/
 Key interactions maintain a "single source of truth" from top to bottom:
 - `usePingMatrix` → unified `start/stop/clear` triggering, `ping()` execution, log writing, and IndexedDB synchronization.
 - `HeaderBar` → handles data exchange through `configTransfer` / `logTransfer` with corresponding JSON schemas.
-- `LogTable` / `LatencyChart` → only consume `log` and `targets`, completely side-effect free for future reuse.
+- `LogTable` / `LatencyChart` → consume shared session-windowed data from `usePingMatrix` to avoid per-tick full-history recomputation.
 
 ## Getting Started
 
@@ -128,7 +129,7 @@ npm run preview    # Preview dist/ with local server
 | Type | Location | Description |
 | --- | --- | --- |
 | Preferences | `localStorage` (`ping-matrix-*`) | Custom intervals/layout/language, auto-loaded when browser restarts. |
-| Logs | IndexedDB (`http-ping-logs`) | Retains 3 days of data, expired records cleaned during write/read operations. |
+| Logs | IndexedDB (`http-ping-logs`) | Retains 3 days of data, with incremental append + periodic retention cleanup to avoid blocking hot render paths. |
 | Config Export | `services/configTransfer.ts` | `type=http-ping-config`, import across devices to maintain consistent behavior. |
 | Log Export | `services/logTransfer.ts` | `type=http-ping-logs`, includes retention info and sorted in reverse chronological order. |
 
@@ -156,6 +157,11 @@ const DEFAULT_TARGETS = [
 ### Adjust Log Retention or Export Schema
 - Modify `retentionDays` in `src/config/logConfig.ts`, other services automatically read the millisecond value.
 - If modifying import/export fields, synchronously update validation logic in `configTransfer` / `logTransfer`.
+
+### Session Window & Perf Tuning
+- Session window state lives in `usePingMatrix` (`mode`, `anchorTime`, `spanMs`, `budget`) and is shared by chart/table rendering.
+- Chart degrade policy can be set with `VITE_CHART_DEGRADE_POLICY=sampling|truncate` (default: `sampling`).
+- For long-run profiling, run the app and paste `scripts/perf-session-long-run.js` in DevTools Console, then call `__PING_PERF_SESSION__.stop()` after a 20-40 minute run.
 
 ### Update Localization
 Edit `src/locales/*.json`, add new keys and use them in components via `t('key')`.
